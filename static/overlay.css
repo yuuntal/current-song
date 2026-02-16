@@ -46,7 +46,7 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
-    background: var(--gradient-bg, var(--bg));
+    background: var(--bg);
     padding: var(--card-padding);
     border-radius: var(--radius);
     color: var(--text);
@@ -356,8 +356,7 @@ body {
    THEME: Gradient Wave
    ═══════════════════════════════════════════════════ */
 .theme-gradient_wave {
-    --bg: none;
-    --gradient-bg: linear-gradient(135deg, #4338ca, #7c3aed, #be185d);
+    --bg: linear-gradient(135deg, #4338ca, #7c3aed, #be185d);
     --border: none;
     --shadow: 0 12px 40px rgba(99, 102, 241, 0.3);
     --radius: 16px;

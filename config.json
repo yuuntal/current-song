@@ -1,16 +1,16 @@
 {
-  "theme": "minimal",
+  "theme": "frosted_glass",
   "show_thumbnail": true,
   "show_artist": true,
   "show_progress": true,
   "show_time": true,
   "monitor_index": 0,
   "position": "TopLeft",
-  "accent_color": "#ffffff",
-  "background_color": "#111111",
+  "accent_color": "#3498db",
+  "background_color": "#1a1a2e",
   "text_color": "#ffffff",
   "font_size_px": 14,
-  "border_radius_px": 6,
-  "blur_px": 0,
+  "border_radius_px": 0,
+  "blur_px": 20,
   "custom_css": ""
 }

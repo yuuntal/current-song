@@ -23,13 +23,13 @@ fetch('/api/config')
     });
 
 function applyConfig(cfg) {
-    const root = document.documentElement;
-    root.style.setProperty('--accent', cfg.accent_color);
-    root.style.setProperty('--bg', cfg.background_color);
-    root.style.setProperty('--text', cfg.text_color);
-    root.style.setProperty('--font-size', `${cfg.font_size_px}px`);
-    root.style.setProperty('--radius', `${cfg.border_radius_px ?? 14}px`);
-    root.style.setProperty('--blur', `${cfg.blur_px ?? 18}px`);
+    const el = document.getElementById('overlay-container');
+    el.style.setProperty('--accent', cfg.accent_color);
+    el.style.setProperty('--bg', cfg.background_color);
+    el.style.setProperty('--text', cfg.text_color);
+    el.style.setProperty('--font-size', `${cfg.font_size_px}px`);
+    el.style.setProperty('--radius', `${cfg.border_radius_px ?? 14}px`);
+    el.style.setProperty('--blur', `${cfg.blur_px ?? 18}px`);
 
     // Theme class
     if (currentTheme) {
