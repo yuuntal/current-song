@@ -220,6 +220,93 @@ body {
     }
 }
 
+/* ── Song Transition Animations ────────────────────── */
+@keyframes anim-fade {
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes anim-slide_up {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes anim-slide_left {
+    0% {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes anim-flip {
+    0% {
+        opacity: 0;
+        transform: perspective(400px) rotateY(90deg);
+    }
+
+    100% {
+        opacity: 1;
+        transform: perspective(400px) rotateY(0deg);
+    }
+}
+
+@keyframes anim-bounce {
+    0% {
+        opacity: 0;
+        transform: scale(0.6);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.08);
+    }
+
+    70% {
+        transform: scale(0.95);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.anim-fade {
+    animation: anim-fade 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.anim-slide_up {
+    animation: anim-slide_up 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.anim-slide_left {
+    animation: anim-slide_left 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.anim-flip {
+    animation: anim-flip 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.anim-bounce {
+    animation: anim-bounce 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* ═══════════════════════════════════════════════════
    THEME: Frosted Glass (default)
    ═══════════════════════════════════════════════════ */

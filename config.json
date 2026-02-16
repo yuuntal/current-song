@@ -12,5 +12,6 @@
   "font_size_px": 14,
   "border_radius_px": 0,
   "blur_px": 20,
-  "custom_css": ""
+  "custom_css": "",
+  "transition_animation": "bounce"
 }

@@ -12,6 +12,8 @@ const artworkContainer = document.getElementById('artwork-container');
 let config = {};
 let currentTheme = '';
 let customStyleEl = null;
+let lastTitle = '';
+let transitionAnim = 'slide_up';
 
 // ── Init ────────────────────────────────────────────
 fetch('/api/config')
@@ -63,6 +65,9 @@ function applyConfig(cfg) {
         customStyleEl.textContent = cfg.custom_css;
         document.head.appendChild(customStyleEl);
     }
+
+    // Transition animation
+    transitionAnim = cfg.transition_animation || 'slide_up';
 }
 
 // ── WebSocket ───────────────────────────────────────
@@ -95,6 +100,19 @@ function updateOverlay(song) {
 
     songTitle.textContent = song.title || 'Unknown Title';
     artistName.textContent = song.artist || 'Unknown Artist';
+
+    // Trigger transition animation on song change
+    const newTitle = song.title || '';
+    if (newTitle !== lastTitle && lastTitle !== '' && transitionAnim !== 'none') {
+        const cls = `anim-${transitionAnim}`;
+        overlay.classList.remove(cls);
+        void overlay.offsetWidth; // force reflow
+        overlay.classList.add(cls);
+        overlay.addEventListener('animationend', () => {
+            overlay.classList.remove(cls);
+        }, { once: true });
+    }
+    lastTitle = newTitle;
 
     if (song.album_art_base64) {
         albumArt.src = `data:image/png;base64,${song.album_art_base64}`;

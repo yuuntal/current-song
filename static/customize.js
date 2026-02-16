@@ -83,6 +83,7 @@ const previewFrame = document.getElementById('preview-frame');
 const customCssEl = document.getElementById('custom-css');
 const importCssEl = document.getElementById('import-css');
 const clearCssBtn = document.getElementById('clear-css');
+const animGrid = document.getElementById('anim-grid');
 
 const fontSizeRange = document.getElementById('font-size');
 const fontSizeLabel = document.getElementById('font-size-label');
@@ -106,6 +107,7 @@ const inputs = {
 
 let selectedTheme = 'frosted_glass';
 let selectedPosition = 'BottomRight';
+let selectedAnimation = 'slide_up';
 
 // ── Build Preset Grid ───────────────────────────────
 Object.entries(PRESETS).forEach(([key, preset]) => {
@@ -142,6 +144,15 @@ positionGrid.querySelectorAll('.pos-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         selectedPosition = btn.dataset.pos;
         positionGrid.querySelectorAll('.pos-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    });
+});
+
+// ── Animation Grid ──────────────────────────────────
+animGrid.querySelectorAll('.anim-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        selectedAnimation = btn.dataset.anim;
+        animGrid.querySelectorAll('.anim-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
     });
 });
@@ -207,6 +218,12 @@ fetch('/api/config')
         positionGrid.querySelectorAll('.pos-btn').forEach(b => {
             b.classList.toggle('active', b.dataset.pos === selectedPosition);
         });
+
+        // Animation
+        selectedAnimation = config.transition_animation || 'slide_up';
+        animGrid.querySelectorAll('.anim-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.anim === selectedAnimation);
+        });
     });
 
 // ── Save Config ─────────────────────────────────────
@@ -228,6 +245,7 @@ form.addEventListener('submit', (e) => {
         monitor_index: 0,
         position: selectedPosition,
         custom_css: customCssEl.value,
+        transition_animation: selectedAnimation,
     };
 
     fetch('/api/config', {

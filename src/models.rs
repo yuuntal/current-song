@@ -30,6 +30,8 @@ pub struct OverlayConfig {
     pub border_radius_px: u32,
     pub blur_px: u32,
     pub custom_css: String,
+    
+    pub transition_animation: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -58,6 +60,7 @@ impl Default for OverlayConfig {
             border_radius_px: 14,
             blur_px: 18,
             custom_css: String::new(),
+            transition_animation: "slide_up".to_string(),
         }
     }
 }
