@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overlay Settings</title>
+    <link rel="stylesheet" href="customize.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="layout">
+        <div class="sidebar">
+            <h1>Settings</h1>
+
+            <form id="config-form">
+
+                <div class="group">
+                    <h2>Theme Preset</h2>
+                    <div id="preset-grid" class="preset-grid"></div>
+                </div>
+
+                <div class="group">
+                    <h2>Colors</h2>
+                    <label>
+                        <span>Accent</span>
+                        <input type="color" id="accent-color" name="accent_color">
+                    </label>
+                    <label>
+                        <span>Background</span>
+                        <input type="color" id="background-color" name="background_color">
+                    </label>
+                    <label>
+                        <span>Text</span>
+                        <input type="color" id="text-color" name="text_color">
+                    </label>
+                </div>
+
+                <div class="group">
+                    <h2>Style</h2>
+                    <label>
+                        <span>Font Size</span>
+                        <div class="range-wrap">
+                            <input type="range" id="font-size" name="font_size_px" min="10" max="24" value="14">
+                            <span id="font-size-label" class="range-value">14px</span>
+                        </div>
+                    </label>
+                    <label>
+                        <span>Border Radius</span>
+                        <div class="range-wrap">
+                            <input type="range" id="border-radius" name="border_radius_px" min="0" max="30" value="14">
+                            <span id="border-radius-label" class="range-value">14px</span>
+                        </div>
+                    </label>
+                    <label>
+                        <span>Blur</span>
+                        <div class="range-wrap">
+                            <input type="range" id="blur" name="blur_px" min="0" max="40" value="18">
+                            <span id="blur-label" class="range-value">18px</span>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="group">
+                    <h2>Visibility</h2>
+                    <label class="toggle-row">
+                        <span>Album Art</span>
+                        <input type="checkbox" id="show-thumbnail" class="toggle">
+                    </label>
+                    <label class="toggle-row">
+                        <span>Artist</span>
+                        <input type="checkbox" id="show-artist" class="toggle">
+                    </label>
+                    <label class="toggle-row">
+                        <span>Progress Bar</span>
+                        <input type="checkbox" id="show-progress" class="toggle">
+                    </label>
+                    <label class="toggle-row">
+                        <span>Time</span>
+                        <input type="checkbox" id="show-time" class="toggle">
+                    </label>
+                </div>
+
+                <div class="group">
+                    <h2>Position</h2>
+                    <div class="position-grid" id="position-grid">
+                        <button type="button" data-pos="TopLeft" class="pos-btn">↖</button>
+                        <button type="button" data-pos="TopRight" class="pos-btn">↗</button>
+                        <button type="button" data-pos="BottomLeft" class="pos-btn">↙</button>
+                        <button type="button" data-pos="BottomRight" class="pos-btn active">↘</button>
+                    </div>
+                </div>
+
+                <div class="group">
+                    <h2>Custom CSS</h2>
+                    <p class="hint">Override any style. Applied directly to the overlay.</p>
+                    <textarea id="custom-css" rows="6" spellcheck="false"
+                        placeholder="#overlay-container { border: 2px solid red; }"></textarea>
+                    <div class="css-actions">
+                        <label class="file-import-btn">
+                            Import .css
+                            <input type="file" id="import-css" accept=".css" hidden>
+                        </label>
+                        <button type="button" id="clear-css" class="clear-btn">Clear</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="save-btn">Save Changes</button>
+                <div id="status"></div>
+            </form>
+        </div>
+
+        <div class="preview-panel">
+            <div class="preview-header">
+                <span>Live Preview</span>
+                <a href="/" target="_blank" class="open-link">Open overlay ↗</a>
+            </div>
+            <div class="preview-frame-wrap">
+                <iframe id="preview-frame" src="/overlay.html"></iframe>
+            </div>
+        </div>
+    </div>
+    <script src="customize.js"></script>
+</body>
+
+</html>

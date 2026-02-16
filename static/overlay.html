@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Current Song Overlay</title>
+    <link rel="stylesheet" href="overlay.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&family=Playfair+Display:wght@400;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div id="overlay-container" class="hidden">
+        <div id="glow-effect"></div>
+        <div id="artwork-container">
+            <img id="album-art" src="" alt="">
+            <div id="vinyl-ring"></div>
+        </div>
+        <div id="info-container">
+            <div id="song-title">Waiting for music...</div>
+            <div id="artist-name"></div>
+            <div id="progress-container">
+                <div id="progress-bar">
+                    <div id="progress-glow"></div>
+                </div>
+            </div>
+            <div id="time-display">
+                <span id="current-time">0:00</span>
+                <span id="time-separator">/</span>
+                <span id="total-time">0:00</span>
+            </div>
+        </div>
+    </div>
+    <script src="overlay.js"></script>
+</body>
+
+</html>
