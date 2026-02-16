@@ -1,17 +1,17 @@
 {
-  "theme": "frosted_glass",
+  "theme": "spotify",
   "show_thumbnail": true,
   "show_artist": true,
   "show_progress": true,
   "show_time": true,
   "monitor_index": 0,
   "position": "TopLeft",
-  "accent_color": "#3498db",
-  "background_color": "#1a1a2e",
+  "accent_color": "#1db954",
+  "background_color": "#121212",
   "text_color": "#ffffff",
   "font_size_px": 14,
-  "border_radius_px": 0,
-  "blur_px": 20,
+  "border_radius_px": 8,
+  "blur_px": 8,
   "custom_css": "",
   "transition_animation": "bounce"
 }

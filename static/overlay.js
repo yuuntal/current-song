@@ -32,6 +32,7 @@ function applyConfig(cfg) {
     el.style.setProperty('--font-size', `${cfg.font_size_px}px`);
     el.style.setProperty('--radius', `${cfg.border_radius_px ?? 14}px`);
     el.style.setProperty('--blur', `${cfg.blur_px ?? 18}px`);
+    el.style.setProperty('--art-radius', `${Math.max(0, (cfg.border_radius_px ?? 14) - 4)}px`);
 
     // Theme class
     if (currentTheme) {

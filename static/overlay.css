@@ -8,7 +8,7 @@
     --radius: 14px;
     --card-padding: 14px;
     --art-size: 56px;
-    --art-radius: 10px;
+    --art-radius: calc(var(--radius) - 4px);
     --progress-height: 3px;
     --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     --border: 1px solid rgba(255, 255, 255, 0.08);
@@ -383,7 +383,6 @@ body {
     --border: none;
     --shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
     --radius: 8px;
-    --art-radius: 4px;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -397,7 +396,6 @@ body {
     --border: 1px solid #ff2d95;
     --shadow: 0 0 15px rgba(255, 45, 149, 0.3), 0 0 30px rgba(0, 255, 255, 0.1);
     --radius: 2px;
-    --art-radius: 2px;
     --glow-opacity: 0.25;
     --glow-color: #ff2d95;
     --progress-glow: block;
@@ -430,7 +428,6 @@ body {
     --border: 1px solid rgba(167, 139, 250, 0.25);
     --shadow: 0 8px 32px rgba(167, 139, 250, 0.2);
     --radius: 20px;
-    --art-radius: 14px;
 }
 
 .theme-pastel_dream #progress-bar {
