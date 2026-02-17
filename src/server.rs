@@ -52,18 +52,18 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
 
     // init state
     let initial_info = state.song_info.lock().unwrap().clone();
-    if let Some(info) = initial_info {
-        if let Ok(msg) = serde_json::to_string(&info) {
-            let _ = sender.send(Message::Text(msg)).await;
-        }
+    if let Some(info) = initial_info
+        && let Ok(msg) = serde_json::to_string(&info)
+    {
+        let _ = sender.send(Message::Text(msg)).await;
     }
 
     let mut send_task = tokio::spawn(async move {
         while let Ok(info) = rx.recv().await {
-            if let Ok(msg) = serde_json::to_string(&info) {
-                if sender.send(Message::Text(msg)).await.is_err() {
-                    break;
-                }
+            if let Ok(msg) = serde_json::to_string(&info)
+                && sender.send(Message::Text(msg)).await.is_err()
+            {
+                break;
             }
         }
     });

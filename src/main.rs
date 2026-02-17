@@ -1,10 +1,10 @@
 mod config;
+mod media_reader;
 mod models;
-mod mpris_reader;
 mod server;
 
 use crate::config::ConfigManager;
-use crate::mpris_reader::MprisReader;
+use crate::media_reader::{MediaReader, PlatformMediaReader};
 use crate::server::AppState;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -22,15 +22,13 @@ async fn main() {
         tx: tx.clone(),
     });
 
-    // Spawn MPRIS poller
-    
+    // Spawn media poller
     let tx_clone = tx.clone();
     let song_info_clone = song_info.clone();
     std::thread::spawn(move || {
-        let reader = MprisReader::new();
+        let reader = PlatformMediaReader::new();
         loop {
             if let Some(info) = reader.get_current_song() {
-
                 {
                     let mut lock = song_info_clone.lock().unwrap();
                     *lock = Some(info.clone());

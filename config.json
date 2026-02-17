@@ -1,17 +1,17 @@
 {
-  "theme": "cyberpunk",
+  "theme": "minimal",
   "show_thumbnail": true,
   "show_artist": true,
   "show_progress": true,
   "show_time": true,
   "monitor_index": 0,
   "position": "TopLeft",
-  "accent_color": "#ff2d95",
-  "background_color": "#0a0214",
-  "text_color": "#f0e6ff",
+  "accent_color": "#ffffff",
+  "background_color": "#111111",
+  "text_color": "#ffffff",
   "font_size_px": 14,
-  "border_radius_px": 2,
-  "blur_px": 6,
+  "border_radius_px": 0,
+  "blur_px": 0,
   "custom_css": "",
   "transition_animation": "bounce"
 }
