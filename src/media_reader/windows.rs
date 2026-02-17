@@ -1,7 +1,6 @@
 use crate::media_reader::MediaReader;
 use crate::models::SongInfo;
 use base64::{Engine as _, engine::general_purpose};
-use std::io::Read;
 use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager;
 use windows::Storage::Streams::DataReader;
 
