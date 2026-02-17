@@ -1,6 +1,5 @@
 use crate::models::SongInfo;
 
-/// Platform-agnostic trait for reading currently playing media info.
 pub trait MediaReader {
     fn new() -> Self;
     fn get_current_song(&self) -> Option<SongInfo>;

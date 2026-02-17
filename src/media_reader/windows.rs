@@ -19,7 +19,7 @@ impl MediaReader for WindowsMediaReader {
             .ok()?;
         let session = manager.GetCurrentSession().ok()?;
 
-        // Media properties (title, artist, album)
+        // title, artist, album
         let media_props = session.TryGetMediaPropertiesAsync().ok()?.get().ok()?;
 
         let title = media_props
@@ -37,7 +37,7 @@ impl MediaReader for WindowsMediaReader {
             .map(|s| s.to_string())
             .unwrap_or_else(|_| String::new());
 
-        // Playback info
+        // playback info
         let playback_info = session.GetPlaybackInfo().ok()?;
         let is_playing = playback_info
             .PlaybackStatus()
@@ -46,18 +46,18 @@ impl MediaReader for WindowsMediaReader {
             })
             .unwrap_or(false);
 
-        // Timeline (position & duration)
+        // timeline (position & duration)
         let timeline = session.GetTimelineProperties().ok()?;
         let position_secs = timeline
             .Position()
-            .map(|d| d.Duration as u64 / 10_000_000) // 100-nanosecond units to seconds
+            .map(|d| d.Duration as u64 / 10_000_000)
             .unwrap_or(0);
         let length_secs = timeline
             .EndTime()
             .map(|d| d.Duration as u64 / 10_000_000)
             .unwrap_or(0);
 
-        // Album art thumbnail
+        // album art thumbnail
         let album_art_base64 = get_thumbnail_base64(&media_props);
 
         Some(SongInfo {

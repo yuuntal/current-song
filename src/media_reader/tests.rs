@@ -1,6 +1,5 @@
 use crate::models::SongInfo;
 
-/// Tests that work on all platforms (model + trait verification)
 #[test]
 fn song_info_default_has_expected_values() {
     let info = SongInfo::default();
@@ -61,14 +60,11 @@ fn song_info_clone_is_independent() {
 
 #[test]
 fn platform_media_reader_implements_trait() {
-    // Verify the platform-specific type is accessible and implements MediaReader.
-    // We can't truly construct on CI (no D-Bus / no media session), but we verify
-    // the type exists and is correctly re-exported.
+
     fn assert_media_reader<T: super::MediaReader>() {}
     assert_media_reader::<super::PlatformMediaReader>();
-}
 
-/// Platform-specific tests
+}
 
 #[cfg(target_os = "linux")]
 mod linux_tests {
@@ -77,16 +73,12 @@ mod linux_tests {
 
     #[test]
     fn linux_reader_returns_none_without_active_player() {
-        // On CI there's no D-Bus session, so new() will panic.
-        // We test that the type signature is correct at minimum.
-        // In environments WITH D-Bus but no player, get_current_song returns None.
-        // This test is best-effort: skip gracefully if D-Bus is unavailable.
+
         let result = std::panic::catch_unwind(|| LinuxMediaReader::new());
         if let Ok(reader) = result {
-            // D-Bus is available — no active player should return None
             assert!(reader.get_current_song().is_none() || reader.get_current_song().is_some());
         }
-        // If D-Bus is not available (CI), the test still passes
+
     }
 }
 
@@ -103,12 +95,12 @@ mod windows_tests {
     #[test]
     fn windows_reader_returns_valid_or_none() {
         let reader = WindowsMediaReader::new();
-        // On CI there may be no active media session — both None and Some are valid
+
         let result = reader.get_current_song();
         if let Some(info) = result {
-            // If a song IS playing, verify fields are populated
             assert!(!info.title.is_empty());
         }
-        // None is also acceptable (no media playing)
+
+
     }
 }

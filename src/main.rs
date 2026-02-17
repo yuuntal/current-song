@@ -22,7 +22,7 @@ async fn main() {
         tx: tx.clone(),
     });
 
-    // Spawn media poller
+
     let tx_clone = tx.clone();
     let song_info_clone = song_info.clone();
     std::thread::spawn(move || {
