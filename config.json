@@ -13,5 +13,5 @@
   "border_radius_px": 0,
   "blur_px": 0,
   "custom_css": "",
-  "transition_animation": "bounce"
+  "transition_animation": "flip"
 }

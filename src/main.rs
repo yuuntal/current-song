@@ -1,11 +1,15 @@
+#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
+
 mod config;
 mod media_reader;
 mod models;
 mod server;
+mod tray;
 
 use crate::config::ConfigManager;
 use crate::media_reader::{MediaReader, PlatformMediaReader};
 use crate::server::AppState;
+use crate::tray::TrayCommand;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::broadcast;
@@ -21,6 +25,12 @@ async fn main() {
         song_info: song_info.clone(),
         tx: tx.clone(),
     });
+
+
+
+    let tray_rx = tray::spawn_tray();
+
+
 
 
     let tx_clone = tx.clone();
@@ -40,6 +50,27 @@ async fn main() {
         }
     });
 
-    // start
-    server::run_server(state).await;
+    let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+
+
+    std::thread::spawn(move || {
+        while let Ok(cmd) = tray_rx.recv() {
+            match cmd {
+                TrayCommand::OpenBrowser => {
+                    let _ = open::that("http://127.0.0.1:3333/customize");
+                }
+                TrayCommand::Quit => {
+
+                    let _ = shutdown_tx.send(());
+                    
+
+                    std::thread::sleep(Duration::from_millis(500));
+                    std::process::exit(0);
+                }
+            }
+        }
+    });
+
+    
+    server::run_server(state, shutdown_rx).await;
 }

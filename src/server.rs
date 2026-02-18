@@ -23,7 +23,7 @@ pub struct AppState {
     pub tx: broadcast::Sender<SongInfo>,
 }
 
-pub async fn run_server(state: Arc<AppState>) {
+pub async fn run_server(state: Arc<AppState>, shutdown_rx: tokio::sync::oneshot::Receiver<()>) {
     let app = Router::new()
         .route("/ws", get(ws_handler))
         .route("/api/config", get(get_config).post(update_config))
@@ -37,9 +37,15 @@ pub async fn run_server(state: Arc<AppState>) {
         .with_state(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3333));
-    println!("Server running at http://{}", addr);
+
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    
+    axum::serve(listener, app)
+        .with_graceful_shutdown(async {
+            let _ = shutdown_rx.await;
+        })
+        .await
+        .unwrap();
 }
 
 async fn ws_handler(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>) -> Response {
