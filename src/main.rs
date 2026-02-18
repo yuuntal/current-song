@@ -26,12 +26,7 @@ async fn main() {
         tx: tx.clone(),
     });
 
-
-
     let tray_rx = tray::spawn_tray();
-
-
-
 
     let tx_clone = tx.clone();
     let song_info_clone = song_info.clone();
@@ -52,18 +47,17 @@ async fn main() {
 
     let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
 
-
     std::thread::spawn(move || {
         while let Ok(cmd) = tray_rx.recv() {
             match cmd {
-                TrayCommand::OpenBrowser => {
+                TrayCommand::Preview => {
+                    let _ = open::that("http://127.0.0.1:3333/");
+                }
+                TrayCommand::OpenCustomize => {
                     let _ = open::that("http://127.0.0.1:3333/customize");
                 }
                 TrayCommand::Quit => {
-
                     let _ = shutdown_tx.send(());
-                    
-
                     std::thread::sleep(Duration::from_millis(500));
                     std::process::exit(0);
                 }
@@ -71,6 +65,5 @@ async fn main() {
         }
     });
 
-    
     server::run_server(state, shutdown_rx).await;
 }

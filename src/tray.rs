@@ -5,7 +5,8 @@ use tray_icon::{
 };
 
 pub enum TrayCommand {
-    OpenBrowser,
+    Preview,
+    OpenCustomize,
     Quit,
 }
 
@@ -35,7 +36,6 @@ fn run_tray_loop(cmd_tx: mpsc::Sender<TrayCommand>) {
     gtk::init().expect("Failed to init GTK");
 
     let _tray = build_tray(&cmd_tx);
-
 
     let cmd_tx_clone = cmd_tx.clone();
     glib_recv_menu_events(cmd_tx_clone);
@@ -70,16 +70,20 @@ fn run_tray_loop(cmd_tx: mpsc::Sender<TrayCommand>) {
 }
 
 // menu item id
-static OPEN_BROWSER_ID: &str = "open_browser";
+static PREVIEW_ID: &str = "preview";
+static CUSTOMIZE_ID: &str = "customize";
 static QUIT_ID: &str = "quit";
 
 fn build_tray(_cmd_tx: &mpsc::Sender<TrayCommand>) -> tray_icon::TrayIcon {
     let menu = Menu::new();
 
-    let open_item = MenuItem::with_id(OPEN_BROWSER_ID, "Open in Browser", true, None);
+    let open_item = MenuItem::with_id(PREVIEW_ID, "Preview", true, None);
+    let open_customize = MenuItem::with_id(CUSTOMIZE_ID, "Customize", true, None);
+
     let quit_item = MenuItem::with_id(QUIT_ID, "Quit", true, None);
 
     menu.append(&open_item).unwrap();
+    menu.append(&open_customize).unwrap();
     menu.append(&quit_item).unwrap();
 
     let icon = create_icon();
@@ -94,8 +98,11 @@ fn build_tray(_cmd_tx: &mpsc::Sender<TrayCommand>) -> tray_icon::TrayIcon {
 
 fn handle_menu_event(id: &str, cmd_tx: &mpsc::Sender<TrayCommand>) {
     match id {
-        id if id == OPEN_BROWSER_ID => {
-            let _ = cmd_tx.send(TrayCommand::OpenBrowser);
+        id if id == PREVIEW_ID => {
+            let _ = cmd_tx.send(TrayCommand::Preview);
+        }
+        id if id == CUSTOMIZE_ID => {
+            let _ = cmd_tx.send(TrayCommand::OpenCustomize);
         }
         id if id == QUIT_ID => {
             let _ = cmd_tx.send(TrayCommand::Quit);
