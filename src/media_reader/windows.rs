@@ -1,14 +1,21 @@
 use crate::media_reader::MediaReader;
 use crate::models::SongInfo;
 use base64::{Engine as _, engine::general_purpose};
+use std::cell::RefCell;
 use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager;
 use windows::Storage::Streams::DataReader;
 
-pub struct WindowsMediaReader;
+pub struct WindowsMediaReader {
+    last_title: RefCell<Option<String>>,
+    last_art: RefCell<Option<String>>,
+}
 
 impl MediaReader for WindowsMediaReader {
     fn new() -> Self {
-        Self
+        Self {
+            last_title: RefCell::new(None),
+            last_art: RefCell::new(None),
+        }
     }
 
     fn get_current_song(&self) -> Option<SongInfo> {
@@ -56,8 +63,15 @@ impl MediaReader for WindowsMediaReader {
             .map(|d| d.Duration as u64 / 10_000_000)
             .unwrap_or(0);
 
-        // album art thumbnail
-        let album_art_base64 = get_thumbnail_base64(&media_props);
+        let mut last_title_ref = self.last_title.borrow_mut();
+        let mut last_art_ref = self.last_art.borrow_mut();
+
+        if last_title_ref.as_deref() != Some(title.as_str()) {
+            *last_art_ref = get_thumbnail_base64(&media_props);
+            *last_title_ref = Some(title.clone());
+        }
+
+        let album_art_base64 = last_art_ref.clone();
 
         Some(SongInfo {
             title,

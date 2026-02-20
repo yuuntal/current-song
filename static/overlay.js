@@ -84,6 +84,9 @@ function connectWs() {
     ws.onclose = () => setTimeout(connectWs, 2000);
 }
 
+let currentSong = {};
+let lastMessageTime = 0;
+
 // ── Update ──────────────────────────────────────────
 function updateOverlay(song) {
     if (!song.title) {
@@ -116,11 +119,37 @@ function updateOverlay(song) {
     lastTitle = newTitle;
 
     if (song.album_art_base64) {
-        albumArt.src = `data:image/png;base64,${song.album_art_base64}`;
+        const newSrc = `data:image/png;base64,${song.album_art_base64}`;
+        if (albumArt.src !== newSrc) {
+            albumArt.src = newSrc;
+        }
         albumArt.style.display = '';
     } else {
-        albumArt.src = '';
+        if (albumArt.getAttribute('src')) {
+            albumArt.removeAttribute('src');
+        }
+        albumArt.style.display = 'none';
     }
+
+    currentSong = song;
+    lastMessageTime = Date.now();
+}
+
+function tick() {
+    requestAnimationFrame(tick);
+    if (!currentSong.title) return;
+
+    let posSecs = currentSong.position_secs || 0;
+    const lengthSecs = currentSong.length_secs || 0;
+
+    if (currentSong.is_playing) {
+        const elapsedMs = Date.now() - lastMessageTime;
+        posSecs += (elapsedMs / 1000);
+    }
+
+    // clamping
+    if (posSecs > lengthSecs) posSecs = lengthSecs;
+    if (posSecs < 0) posSecs = 0;
 
     const fmt = (secs) => {
         const m = Math.floor(secs / 60);
@@ -128,12 +157,13 @@ function updateOverlay(song) {
         return `${m}:${s.toString().padStart(2, '0')}`;
     };
 
-    currentTimeEl.textContent = fmt(song.position_secs);
-    totalTimeEl.textContent = fmt(song.length_secs);
+    currentTimeEl.textContent = fmt(posSecs);
+    totalTimeEl.textContent = fmt(lengthSecs);
 
-    if (song.length_secs > 0) {
-        progressBar.style.width = `${(song.position_secs / song.length_secs) * 100}%`;
+    if (lengthSecs > 0) {
+        progressBar.style.width = `${(posSecs / lengthSecs) * 100}%`;
     } else {
         progressBar.style.width = '0%';
     }
 }
+requestAnimationFrame(tick);

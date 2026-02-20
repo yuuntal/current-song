@@ -6,14 +6,20 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
+use std::cell::RefCell;
+
 pub struct LinuxMediaReader {
     player_finder: PlayerFinder,
+    last_url: RefCell<Option<String>>,
+    last_art: RefCell<Option<String>>,
 }
 
 impl MediaReader for LinuxMediaReader {
     fn new() -> Self {
         Self {
             player_finder: PlayerFinder::new().expect("Could not connect to D-Bus"),
+            last_url: RefCell::new(None),
+            last_art: RefCell::new(None),
         }
     }
 
@@ -35,7 +41,16 @@ impl MediaReader for LinuxMediaReader {
                 .map(|s| s == mpris::PlaybackStatus::Playing)
                 .unwrap_or(false);
 
-            let album_art_base64 = get_album_art_base64(&metadata);
+            let current_art_url = metadata.art_url().map(|s| s.to_string());
+            let mut last_url_ref = self.last_url.borrow_mut();
+            let mut last_art_ref = self.last_art.borrow_mut();
+
+            if *last_url_ref != current_art_url || current_art_url.is_none() {
+                *last_art_ref = get_album_art_base64(&metadata);
+                *last_url_ref = current_art_url;
+            }
+
+            let album_art_base64 = last_art_ref.clone();
 
             return Some(SongInfo {
                 title,
