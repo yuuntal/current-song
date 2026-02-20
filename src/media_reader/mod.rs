@@ -1,8 +1,9 @@
 use crate::models::SongInfo;
+use tokio::sync::mpsc::UnboundedSender;
 
 pub trait MediaReader {
     fn new() -> Self;
-    fn get_current_song(&self) -> Option<SongInfo>;
+    fn start_listening(self, sender: UnboundedSender<SongInfo>);
 }
 
 #[cfg(target_os = "linux")]

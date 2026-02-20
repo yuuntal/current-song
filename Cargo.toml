@@ -15,10 +15,10 @@ image = "0.25"
 lazy_static = "1.4"
 tray-icon = "0.19"
 open = "5"
-mpris = "2"
+tokio-stream = "0.1"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-mpris = "2"
+zbus = "4"
 gtk = "0.18"
 
 [target.'cfg(target_os = "windows")'.dependencies]
