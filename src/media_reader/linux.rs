@@ -1,142 +1,345 @@
 use crate::media_reader::MediaReader;
 use crate::models::SongInfo;
-use base64::{engine::general_purpose, Engine as _};
-use mpris::{Metadata, PlayerFinder};
-use std::cell::RefCell;
+use base64::{Engine as _, engine::general_purpose};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tokio::sync::{Mutex, mpsc::UnboundedSender};
+use tokio_stream::StreamExt;
+use zbus::{Connection, MessageStream, Proxy, zvariant::Value};
 
-pub struct LinuxMediaReader {
-    player_finder: PlayerFinder,
-    last_url: RefCell<Option<String>>,
-    last_art: RefCell<Option<String>>,
+#[derive(Debug, Clone)]
+struct PlayerState {
+    track_id: Option<String>,
+    title: String,
+    artist: String,
+    album: String,
+    art_url: Option<String>,
+    cached_art_base64: Option<String>,
+    length_secs: u64,
 
-    last_id: RefCell<Option<String>>,
-    tracked_pos: RefCell<f64>,
-    last_tick: RefCell<Option<std::time::Instant>>,
-    last_reported_pos: RefCell<f64>,
+    playback_status: String,
+    position_microsecs: i64,
+    last_update: Instant,
 }
+
+impl Default for PlayerState {
+    fn default() -> Self {
+        Self {
+            track_id: None,
+            title: "Unknown Title".into(),
+            artist: "Unknown Artist".into(),
+            album: String::new(),
+            art_url: None,
+            cached_art_base64: None,
+            length_secs: 0,
+            playback_status: "Stopped".into(),
+            position_microsecs: 0,
+            last_update: Instant::now(),
+        }
+    }
+}
+
+pub struct LinuxMediaReader;
 
 impl MediaReader for LinuxMediaReader {
     fn new() -> Self {
-        Self {
-            player_finder: PlayerFinder::new().expect("Could not connect to D-Bus"),
-            last_url: RefCell::new(None),
-            last_art: RefCell::new(None),
-            last_id: RefCell::new(None),
-            tracked_pos: RefCell::new(0.0),
-            last_tick: RefCell::new(None),
-            last_reported_pos: RefCell::new(0.0),
-        }
+        Self
     }
 
-    fn get_current_song(&self) -> Option<SongInfo> {
-        if let Ok(player) = self.player_finder.find_active()
-            && let Ok(metadata) = player.get_metadata()
-        {
-            let title = metadata.title().unwrap_or("Unknown Title").to_string();
-            let artist = metadata
-                .artists()
-                .map(|a| a.join(", "))
-                .unwrap_or_else(|| "Unknown Artist".to_string());
-            let album = metadata.album_name().unwrap_or("").to_string();
-            let length_secs = metadata.length().map(|d| d.as_secs()).unwrap_or(0);
-
-            let reported_pos = player
-                .get_position()
-                .map(|d| d.as_secs_f64())
-                .unwrap_or(0.0);
-
-            let is_playing = player
-                .get_playback_status()
-                .map(|s| s == mpris::PlaybackStatus::Playing)
-                .unwrap_or(false);
-
-            // use mpris:trackid
-            let current_id = metadata.track_id().map(|id| id.to_string());
-
-            let mut last_id = self.last_id.borrow_mut();
-            let mut tracked_pos = self.tracked_pos.borrow_mut();
-            let mut last_tick = self.last_tick.borrow_mut();
-            let mut last_reported = self.last_reported_pos.borrow_mut();
-
-            let now = std::time::Instant::now();
-
-            let is_new_song = *last_id != current_id;
-
-            if is_new_song {
-                *last_id = current_id.clone();
-                *tracked_pos = reported_pos.min(1.0);
-                *last_reported = reported_pos;
-                *last_tick = Some(now);
-            } else {
-                let dt = last_tick
-                    .map(|t| now.duration_since(t).as_secs_f64())
-                    .unwrap_or(0.0);
-
-                *last_tick = Some(now);
-
-                let diff = reported_pos - *last_reported;
-                *last_reported = reported_pos;
-
-                if reported_pos < 1.0 {
-                    // native reset
-                    *tracked_pos = reported_pos;
-                } else if (diff - dt).abs() > 3.0 && *tracked_pos > 2.0 {
-                    // manually seeking
-                    *tracked_pos = reported_pos;
-                } else if is_playing {
-                    *tracked_pos += dt;
+    fn start_listening(self, sender: UnboundedSender<SongInfo>) {
+        tokio::spawn(async move {
+            let conn = match Connection::session().await {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("DBus connection failed: {e}");
+                    return;
                 }
-            }
+            };
 
-            let mut position_secs = *tracked_pos as u64;
+            let players: Arc<Mutex<HashMap<String, PlayerState>>> =
+                Arc::new(Mutex::new(HashMap::new()));
 
-            if length_secs > 0 && position_secs > length_secs {
-                position_secs = length_secs;
-            }
+            initialize_existing_players(&conn, &players).await;
 
-            // caching album art
-            let current_art_url = metadata.art_url().map(|s| s.to_string());
-            let mut last_url_ref = self.last_url.borrow_mut();
-            let mut last_art_ref = self.last_art.borrow_mut();
-
-            if *last_url_ref != current_art_url || current_art_url.is_none() {
-                *last_art_ref = get_album_art_base64(&metadata);
-                *last_url_ref = current_art_url;
-            }
-
-            let album_art_base64 = last_art_ref.clone();
-
-            return Some(SongInfo {
-                title,
-                artist,
-                album,
-                album_art_base64,
-                position_secs,
-                length_secs,
-                is_playing,
-            });
-        }
-
-        None
+            spawn_signal_listener(conn.clone(), players.clone(), sender.clone());
+            spawn_position_loop(conn, players, sender);
+        });
     }
 }
 
-fn get_album_art_base64(metadata: &Metadata) -> Option<String> {
-    if let Some(art_url) = metadata.art_url() {
-        let path_str = art_url.strip_prefix("file://")?;
-
-        let path = Path::new(path_str);
-
-        if path.exists() {
-            if let Ok(mut file) = File::open(path) {
-                let mut buffer = Vec::new();
-                if file.read_to_end(&mut buffer).is_ok() {
-                    return Some(general_purpose::STANDARD.encode(&buffer));
+async fn initialize_existing_players(
+    conn: &Connection,
+    players: &Arc<Mutex<HashMap<String, PlayerState>>>,
+) {
+    if let Ok(proxy) = zbus::fdo::DBusProxy::new(conn).await {
+        if let Ok(names) = proxy.list_names().await {
+            for name in names {
+                if name.starts_with("org.mpris.MediaPlayer2.") {
+                    let _ = refresh_full_state(conn, &name, players).await;
                 }
             }
+        }
+    }
+}
+
+fn spawn_signal_listener(
+    conn: Connection,
+    players: Arc<Mutex<HashMap<String, PlayerState>>>,
+    sender: UnboundedSender<SongInfo>,
+) {
+    tokio::spawn(async move {
+        let mut stream = MessageStream::from(&conn);
+
+        while let Some(Ok(msg)) = stream.next().await {
+            let header = msg.header();
+            let interface = header.interface().map(|i| i.as_str());
+            let member = header.member().map(|m| m.as_str());
+            let sender_bus = header.sender().map(|s| s.as_str().to_string());
+
+            match (interface, member) {
+                (Some("org.freedesktop.DBus"), Some("NameOwnerChanged")) => {
+                    if let Ok((name, old_owner, new_owner)) =
+                        msg.body().deserialize::<(String, String, String)>()
+                    {
+                        if name.starts_with("org.mpris.MediaPlayer2.") {
+                            if new_owner.is_empty() {
+                                players.lock().await.remove(&name);
+                            } else if old_owner.is_empty() {
+                                let _ = refresh_full_state(&conn, &name, &players).await;
+                            }
+                        }
+                    }
+                }
+
+                (Some("org.freedesktop.DBus.Properties"), Some("PropertiesChanged")) => {
+                    if let Some(bus_name) = sender_bus {
+                        if let Ok((iface, changed, _)) =
+                            msg.body()
+                                .deserialize::<(String, HashMap<String, Value>, Vec<String>)>()
+                        {
+                            if iface == "org.mpris.MediaPlayer2.Player" {
+                                apply_property_changes(&bus_name, changed, &players).await;
+                                emit_best_player(&players, &sender).await;
+                            }
+                        }
+                    }
+                }
+
+                _ => {}
+            }
+        }
+    });
+}
+
+fn spawn_position_loop(
+    conn: Connection,
+    players: Arc<Mutex<HashMap<String, PlayerState>>>,
+    sender: UnboundedSender<SongInfo>,
+) {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(1));
+
+        loop {
+            interval.tick().await;
+
+            emit_best_player(&players, &sender).await;
+
+            let active: Vec<String> = {
+                let map = players.lock().await;
+                map.iter()
+                    .filter(|(_, s)| s.playback_status == "Playing")
+                    .map(|(k, _)| k.clone())
+                    .collect()
+            };
+
+            for name in active {
+                let _ = sync_position(&conn, &name, &players).await;
+            }
+        }
+    });
+}
+
+async fn refresh_full_state(
+    conn: &Connection,
+    bus_name: &str,
+    players: &Arc<Mutex<HashMap<String, PlayerState>>>,
+) -> zbus::Result<()> {
+    let proxy = Proxy::new(
+        conn,
+        bus_name,
+        "/org/mpris/MediaPlayer2",
+        "org.freedesktop.DBus.Properties",
+    )
+    .await?;
+
+    let metadata = proxy.get_property::<Value>("Metadata").await.ok();
+    let playback = proxy.get_property::<Value>("PlaybackStatus").await.ok();
+    let position = proxy.get_property::<Value>("Position").await.ok();
+
+    let mut map = players.lock().await;
+    let state = map.entry(bus_name.to_string()).or_default();
+
+    if let Some(val) = metadata {
+        if let Ok(dict) = zbus::zvariant::Dict::try_from(&val) {
+            parse_metadata(&dict, state);
+        }
+    }
+
+    if let Some(val) = playback {
+        if let Ok(status) = String::try_from(&val) {
+            state.playback_status = status;
+        }
+    }
+
+    if let Some(val) = position {
+        if let Ok(pos) = i64::try_from(&val) {
+            state.position_microsecs = pos;
+            state.last_update = Instant::now();
+        }
+    }
+
+    Ok(())
+}
+
+async fn apply_property_changes(
+    bus_name: &str,
+    changed: HashMap<String, Value<'_>>,
+    players: &Arc<Mutex<HashMap<String, PlayerState>>>,
+) {
+    let mut map = players.lock().await;
+    let state = map.entry(bus_name.to_string()).or_default();
+
+    if let Some(val) = changed.get("Metadata") {
+        if let zbus::zvariant::Value::Dict(dict) = val {
+            parse_metadata(&dict, state);
+        }
+    }
+
+    if let Some(val) = changed.get("PlaybackStatus") {
+        if let Ok(s) = zbus::zvariant::Str::try_from(val) {
+            state.playback_status = s.as_str().to_string();
+            state.last_update = Instant::now();
+        }
+    }
+}
+
+async fn sync_position(
+    conn: &Connection,
+    bus_name: &str,
+    players: &Arc<Mutex<HashMap<String, PlayerState>>>,
+) -> zbus::Result<()> {
+    let proxy = Proxy::new(
+        conn,
+        bus_name,
+        "/org/mpris/MediaPlayer2",
+        "org.freedesktop.DBus.Properties",
+    )
+    .await?;
+
+    if let Ok(val) = proxy.get_property::<Value>("Position").await {
+        if let Ok(pos) = i64::try_from(&val) {
+            let mut map = players.lock().await;
+            if let Some(state) = map.get_mut(bus_name) {
+                state.position_microsecs = pos;
+                state.last_update = Instant::now();
+            }
+        }
+    }
+
+    Ok(())
+}
+
+async fn emit_best_player(
+    players: &Arc<Mutex<HashMap<String, PlayerState>>>,
+    sender: &UnboundedSender<SongInfo>,
+) {
+    let map = players.lock().await;
+
+    let best = map
+        .values()
+        .filter(|p| p.playback_status == "Playing")
+        .max_by_key(|p| p.last_update)
+        .or_else(|| map.values().max_by_key(|p| p.last_update));
+
+    if let Some(p) = best {
+        let is_playing = p.playback_status == "Playing";
+
+        let position_secs = (p.position_microsecs as f64 / 1_000_000.0)
+            + if is_playing {
+                p.last_update.elapsed().as_secs_f64()
+            } else {
+                0.0
+            };
+
+        let mut position_secs = position_secs as u64;
+
+        if p.length_secs > 0 {
+            position_secs = position_secs.min(p.length_secs);
+        }
+
+        let _ = sender.send(SongInfo {
+            title: p.title.clone(),
+            artist: p.artist.clone(),
+            album: p.album.clone(),
+            album_art_base64: p.cached_art_base64.clone(),
+            position_secs,
+            length_secs: p.length_secs,
+            is_playing,
+        });
+    }
+}
+
+fn parse_metadata(dict: &zbus::zvariant::Dict<'_, '_>, state: &mut PlayerState) {
+    // TITLE
+    if let Ok(Some(val)) = dict.get::<&str, Value>(&"xesam:title") {
+        if let Ok(s) = String::try_from(val) {
+            state.title = s;
+        }
+    }
+
+    // ARTIST (ARRAY OF STRINGS)
+    if let Ok(Some(val)) = dict.get::<&str, Value>(&"xesam:artist") {
+        if let Ok(array) = <Vec<String>>::try_from(val) {
+            state.artist = array.join(", ");
+        }
+    }
+
+    // ALBUM
+    if let Ok(Some(val)) = dict.get::<&str, Value>(&"xesam:album") {
+        if let Ok(s) = String::try_from(val) {
+            state.album = s;
+        }
+    }
+
+    // LENGTH
+    if let Ok(Some(val)) = dict.get::<&str, Value>(&"mpris:length") {
+        if let Ok(len) = i64::try_from(val) {
+            state.length_secs = (len as u64) / 1_000_000;
+        }
+    }
+
+    // ALBUM ART
+    if let Ok(Some(val)) = dict.get::<&str, Value>(&"mpris:artUrl") {
+        if let Ok(url) = String::try_from(val) {
+            if state.art_url.as_ref() != Some(&url) {
+                state.art_url = Some(url.clone());
+                state.cached_art_base64 = get_album_art_base64(&url);
+            }
+        }
+    }
+}
+
+fn get_album_art_base64(art_url: &str) -> Option<String> {
+    let path = Path::new(art_url.strip_prefix("file://")?);
+
+    if let Ok(mut file) = File::open(path) {
+        let mut buf = Vec::new();
+        if file.read_to_end(&mut buf).is_ok() {
+            return Some(general_purpose::STANDARD.encode(buf));
         }
     }
 

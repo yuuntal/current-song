@@ -28,20 +28,21 @@ async fn main() {
 
     let tray_rx = tray::spawn_tray();
 
+    let (internal_tx, mut internal_rx) = tokio::sync::mpsc::unbounded_channel();
+
+    let reader = PlatformMediaReader::new();
+    reader.start_listening(internal_tx);
+
     let tx_clone = tx.clone();
     let song_info_clone = song_info.clone();
-    std::thread::spawn(move || {
-        let reader = PlatformMediaReader::new();
-        loop {
-            if let Some(info) = reader.get_current_song() {
-                {
-                    let mut lock = song_info_clone.lock().unwrap();
-                    *lock = Some(info.clone());
-                }
-                // ws
-                let _ = tx_clone.send(info);
+    tokio::spawn(async move {
+        while let Some(info) = internal_rx.recv().await {
+            {
+                let mut lock = song_info_clone.lock().unwrap();
+                *lock = Some(info.clone());
             }
-            std::thread::sleep(Duration::from_secs(1));
+            // ws
+            let _ = tx_clone.send(info);
         }
     });
 

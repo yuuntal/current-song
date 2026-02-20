@@ -10,7 +10,7 @@
   "background_color": "#111111",
   "text_color": "#ffffff",
   "font_size_px": 14,
-  "border_radius_px": 0,
+  "border_radius_px": 6,
   "blur_px": 0,
   "custom_css": "",
   "transition_animation": "flip"
