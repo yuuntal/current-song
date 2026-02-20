@@ -43,6 +43,9 @@ impl Default for PlayerState {
     }
 }
 
+/// Maps unique bus names (e.g. ":1.234") to well-known names (e.g. "org.mpris.MediaPlayer2.spotify")
+type BusNameMap = Arc<Mutex<HashMap<String, String>>>;
+
 pub struct LinuxMediaReader;
 
 impl MediaReader for LinuxMediaReader {
@@ -62,10 +65,16 @@ impl MediaReader for LinuxMediaReader {
 
             let players: Arc<Mutex<HashMap<String, PlayerState>>> =
                 Arc::new(Mutex::new(HashMap::new()));
+            let bus_names: BusNameMap = Arc::new(Mutex::new(HashMap::new()));
 
-            initialize_existing_players(&conn, &players).await;
+            initialize_existing_players(&conn, &players, &bus_names).await;
 
-            spawn_signal_listener(conn.clone(), players.clone(), sender.clone());
+            spawn_signal_listener(
+                conn.clone(),
+                players.clone(),
+                bus_names.clone(),
+                sender.clone(),
+            );
             spawn_position_loop(conn, players, sender);
         });
     }
@@ -74,12 +83,21 @@ impl MediaReader for LinuxMediaReader {
 async fn initialize_existing_players(
     conn: &Connection,
     players: &Arc<Mutex<HashMap<String, PlayerState>>>,
+    bus_names: &BusNameMap,
 ) {
-    if let Ok(proxy) = zbus::fdo::DBusProxy::new(conn).await {
-        if let Ok(names) = proxy.list_names().await {
+    if let Ok(dbus_proxy) = zbus::fdo::DBusProxy::new(conn).await {
+        if let Ok(names) = dbus_proxy.list_names().await {
             for name in names {
-                if name.starts_with("org.mpris.MediaPlayer2.") {
-                    let _ = refresh_full_state(conn, &name, players).await;
+                let name_str = name.as_str().to_string();
+                if name_str.starts_with("org.mpris.MediaPlayer2.") {
+                    // Resolve the unique bus name for this well-known name
+                    if let Ok(owner) = dbus_proxy.get_name_owner(name.inner().clone()).await {
+                        bus_names
+                            .lock()
+                            .await
+                            .insert(owner.as_str().to_string(), name_str.clone());
+                    }
+                    let _ = refresh_full_state(conn, &name_str, players).await;
                 }
             }
         }
@@ -89,6 +107,7 @@ async fn initialize_existing_players(
 fn spawn_signal_listener(
     conn: Connection,
     players: Arc<Mutex<HashMap<String, PlayerState>>>,
+    bus_names: BusNameMap,
     sender: UnboundedSender<SongInfo>,
 ) {
     tokio::spawn(async move {
@@ -107,23 +126,37 @@ fn spawn_signal_listener(
                     {
                         if name.starts_with("org.mpris.MediaPlayer2.") {
                             if new_owner.is_empty() {
+                                // Player went away — remove from both maps
                                 players.lock().await.remove(&name);
+                                if !old_owner.is_empty() {
+                                    bus_names.lock().await.remove(&old_owner);
+                                }
                             } else if old_owner.is_empty() {
+                                // New player appeared — record its unique-to-well-known mapping
+                                bus_names
+                                    .lock()
+                                    .await
+                                    .insert(new_owner.clone(), name.clone());
                                 let _ = refresh_full_state(&conn, &name, &players).await;
                             }
+                            emit_best_player(&players, &sender).await;
                         }
                     }
                 }
 
                 (Some("org.freedesktop.DBus.Properties"), Some("PropertiesChanged")) => {
-                    if let Some(bus_name) = sender_bus {
+                    if let Some(unique_name) = sender_bus {
                         if let Ok((iface, changed, _)) =
                             msg.body()
                                 .deserialize::<(String, HashMap<String, Value>, Vec<String>)>()
                         {
                             if iface == "org.mpris.MediaPlayer2.Player" {
-                                apply_property_changes(&bus_name, changed, &players).await;
-                                emit_best_player(&players, &sender).await;
+                                // Resolve the unique bus name to the well-known name
+                                let well_known = bus_names.lock().await.get(&unique_name).cloned();
+                                if let Some(wk_name) = well_known {
+                                    apply_property_changes(&wk_name, changed, &players).await;
+                                    emit_best_player(&players, &sender).await;
+                                }
                             }
                         }
                     }
@@ -172,7 +205,7 @@ async fn refresh_full_state(
         conn,
         bus_name,
         "/org/mpris/MediaPlayer2",
-        "org.freedesktop.DBus.Properties",
+        "org.mpris.MediaPlayer2.Player",
     )
     .await?;
 
@@ -236,7 +269,7 @@ async fn sync_position(
         conn,
         bus_name,
         "/org/mpris/MediaPlayer2",
-        "org.freedesktop.DBus.Properties",
+        "org.mpris.MediaPlayer2.Player",
     )
     .await?;
 
