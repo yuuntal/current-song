@@ -80,6 +80,16 @@ mod linux_tests {
         }
 
     }
+
+    #[test]
+    fn linux_reader_does_not_panic_on_poll() {
+        let result = std::panic::catch_unwind(|| {
+            let reader = LinuxMediaReader::new();
+            let _ = reader.get_current_song();
+        });
+
+        assert!(result.is_ok());
+}
 }
 
 #[cfg(target_os = "windows")]

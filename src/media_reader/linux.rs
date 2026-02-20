@@ -1,12 +1,11 @@
 use crate::media_reader::MediaReader;
 use crate::models::SongInfo;
-use base64::{Engine as _, engine::general_purpose};
+use base64::{engine::general_purpose, Engine as _};
 use mpris::{Metadata, PlayerFinder};
+use std::cell::RefCell;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
-
-use std::cell::RefCell;
 
 pub struct LinuxMediaReader {
     player_finder: PlayerFinder,
@@ -48,12 +47,14 @@ impl MediaReader for LinuxMediaReader {
                 .get_position()
                 .map(|d| d.as_secs_f64())
                 .unwrap_or(0.0);
+
             let is_playing = player
                 .get_playback_status()
                 .map(|s| s == mpris::PlaybackStatus::Playing)
                 .unwrap_or(false);
 
-            let current_id = Some(format!("{}|{}", title, artist));
+            // use mpris:trackid
+            let current_id = metadata.track_id().map(|id| id.to_string());
 
             let mut last_id = self.last_id.borrow_mut();
             let mut tracked_pos = self.tracked_pos.borrow_mut();
@@ -62,22 +63,28 @@ impl MediaReader for LinuxMediaReader {
 
             let now = std::time::Instant::now();
 
-            if *last_id != current_id {
+            let is_new_song = *last_id != current_id;
+
+            if is_new_song {
                 *last_id = current_id.clone();
-                *tracked_pos = 0.0;
+                *tracked_pos = reported_pos.min(1.0);
                 *last_reported = reported_pos;
                 *last_tick = Some(now);
             } else {
                 let dt = last_tick
                     .map(|t| now.duration_since(t).as_secs_f64())
                     .unwrap_or(0.0);
+
                 *last_tick = Some(now);
 
                 let diff = reported_pos - *last_reported;
                 *last_reported = reported_pos;
 
-                // if reported_pos skips unexpectedly, sync
-                if (diff - dt).abs() > 3.0 {
+                if reported_pos < 1.0 {
+                    // native reset
+                    *tracked_pos = reported_pos;
+                } else if (diff - dt).abs() > 3.0 && *tracked_pos > 2.0 {
+                    // manually seeking
                     *tracked_pos = reported_pos;
                 } else if is_playing {
                     *tracked_pos += dt;
@@ -85,10 +92,12 @@ impl MediaReader for LinuxMediaReader {
             }
 
             let mut position_secs = *tracked_pos as u64;
+
             if length_secs > 0 && position_secs > length_secs {
                 position_secs = length_secs;
             }
 
+            // caching album art
             let current_art_url = metadata.art_url().map(|s| s.to_string());
             let mut last_url_ref = self.last_url.borrow_mut();
             let mut last_art_ref = self.last_art.borrow_mut();
@@ -110,6 +119,7 @@ impl MediaReader for LinuxMediaReader {
                 is_playing,
             });
         }
+
         None
     }
 }
@@ -119,14 +129,16 @@ fn get_album_art_base64(metadata: &Metadata) -> Option<String> {
         let path_str = art_url.strip_prefix("file://")?;
 
         let path = Path::new(path_str);
-        if path.exists()
-            && let Ok(mut file) = File::open(path)
-        {
-            let mut buffer = Vec::new();
-            if file.read_to_end(&mut buffer).is_ok() {
-                return Some(general_purpose::STANDARD.encode(&buffer));
+
+        if path.exists() {
+            if let Ok(mut file) = File::open(path) {
+                let mut buffer = Vec::new();
+                if file.read_to_end(&mut buffer).is_ok() {
+                    return Some(general_purpose::STANDARD.encode(&buffer));
+                }
             }
         }
     }
+
     None
 }
