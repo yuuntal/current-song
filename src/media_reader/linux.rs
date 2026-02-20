@@ -12,6 +12,11 @@ pub struct LinuxMediaReader {
     player_finder: PlayerFinder,
     last_url: RefCell<Option<String>>,
     last_art: RefCell<Option<String>>,
+
+    last_id: RefCell<Option<String>>,
+    tracked_pos: RefCell<f64>,
+    last_tick: RefCell<Option<std::time::Instant>>,
+    last_reported_pos: RefCell<f64>,
 }
 
 impl MediaReader for LinuxMediaReader {
@@ -20,6 +25,10 @@ impl MediaReader for LinuxMediaReader {
             player_finder: PlayerFinder::new().expect("Could not connect to D-Bus"),
             last_url: RefCell::new(None),
             last_art: RefCell::new(None),
+            last_id: RefCell::new(None),
+            tracked_pos: RefCell::new(0.0),
+            last_tick: RefCell::new(None),
+            last_reported_pos: RefCell::new(0.0),
         }
     }
 
@@ -35,11 +44,50 @@ impl MediaReader for LinuxMediaReader {
             let album = metadata.album_name().unwrap_or("").to_string();
             let length_secs = metadata.length().map(|d| d.as_secs()).unwrap_or(0);
 
-            let position_secs = player.get_position().map(|d| d.as_secs()).unwrap_or(0);
+            let reported_pos = player
+                .get_position()
+                .map(|d| d.as_secs_f64())
+                .unwrap_or(0.0);
             let is_playing = player
                 .get_playback_status()
                 .map(|s| s == mpris::PlaybackStatus::Playing)
                 .unwrap_or(false);
+
+            let current_id = Some(format!("{}|{}", title, artist));
+
+            let mut last_id = self.last_id.borrow_mut();
+            let mut tracked_pos = self.tracked_pos.borrow_mut();
+            let mut last_tick = self.last_tick.borrow_mut();
+            let mut last_reported = self.last_reported_pos.borrow_mut();
+
+            let now = std::time::Instant::now();
+
+            if *last_id != current_id {
+                *last_id = current_id.clone();
+                *tracked_pos = 0.0;
+                *last_reported = reported_pos;
+                *last_tick = Some(now);
+            } else {
+                let dt = last_tick
+                    .map(|t| now.duration_since(t).as_secs_f64())
+                    .unwrap_or(0.0);
+                *last_tick = Some(now);
+
+                let diff = reported_pos - *last_reported;
+                *last_reported = reported_pos;
+
+                // if reported_pos skips unexpectedly, sync
+                if (diff - dt).abs() > 3.0 {
+                    *tracked_pos = reported_pos;
+                } else if is_playing {
+                    *tracked_pos += dt;
+                }
+            }
+
+            let mut position_secs = *tracked_pos as u64;
+            if length_secs > 0 && position_secs > length_secs {
+                position_secs = length_secs;
+            }
 
             let current_art_url = metadata.art_url().map(|s| s.to_string());
             let mut last_url_ref = self.last_url.borrow_mut();
