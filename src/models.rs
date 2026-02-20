@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct SongInfo {
     pub title: String,
     pub artist: String,
@@ -30,7 +30,7 @@ pub struct OverlayConfig {
     pub border_radius_px: u32,
     pub blur_px: u32,
     pub custom_css: String,
-    
+
     pub transition_animation: String,
 }
 
