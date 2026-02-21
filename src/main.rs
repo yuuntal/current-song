@@ -8,6 +8,7 @@ mod tray;
 
 use crate::config::ConfigManager;
 use crate::media_reader::{MediaReader, PlatformMediaReader};
+use crate::models::SongInfo;
 use crate::server::AppState;
 use crate::tray::TrayCommand;
 use std::sync::{Arc, Mutex};
@@ -32,14 +33,19 @@ async fn main() {
     let song_info_clone = song_info.clone();
     std::thread::spawn(move || {
         let reader = PlatformMediaReader::new();
+        let mut last_info: Option<SongInfo> = None;
         loop {
-            if let Some(info) = reader.get_current_song() {
-                {
-                    let mut lock = song_info_clone.lock().unwrap();
-                    *lock = Some(info.clone());
+            let current = reader.get_current_song();
+            if current != last_info {
+                if let Some(ref info) = current {
+                    {
+                        let mut lock = song_info_clone.lock().unwrap();
+                        *lock = Some(info.clone());
+                    }
+                    // ws
+                    let _ = tx_clone.send(info.clone());
                 }
-                // ws
-                let _ = tx_clone.send(info);
+                last_info = current;
             }
             std::thread::sleep(Duration::from_secs(1));
         }

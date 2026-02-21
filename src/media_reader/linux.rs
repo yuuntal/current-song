@@ -1,18 +1,28 @@
 use crate::media_reader::MediaReader;
 use crate::models::SongInfo;
-use base64::{engine::general_purpose, Engine as _};
+use base64::{Engine as _, engine::general_purpose};
 use mpris::{Metadata, PlayerFinder};
 use std::cell::RefCell;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use std::sync::Arc;
+
+// CACHING
+struct CachedTrack {
+    id: Option<String>,
+    title: String,
+    artist: String,
+    album: String,
+    length_secs: u64,
+    art_url: Option<String>,
+    album_art_base64: Option<Arc<String>>,
+}
 
 pub struct LinuxMediaReader {
     player_finder: PlayerFinder,
-    last_url: RefCell<Option<String>>,
-    last_art: RefCell<Option<String>>,
+    cached_track: RefCell<Option<CachedTrack>>,
 
-    last_id: RefCell<Option<String>>,
     tracked_pos: RefCell<f64>,
     last_tick: RefCell<Option<std::time::Instant>>,
     last_reported_pos: RefCell<f64>,
@@ -22,9 +32,7 @@ impl MediaReader for LinuxMediaReader {
     fn new() -> Self {
         Self {
             player_finder: PlayerFinder::new().expect("Could not connect to D-Bus"),
-            last_url: RefCell::new(None),
-            last_art: RefCell::new(None),
-            last_id: RefCell::new(None),
+            cached_track: RefCell::new(None),
             tracked_pos: RefCell::new(0.0),
             last_tick: RefCell::new(None),
             last_reported_pos: RefCell::new(0.0),
@@ -35,13 +43,7 @@ impl MediaReader for LinuxMediaReader {
         if let Ok(player) = self.player_finder.find_active()
             && let Ok(metadata) = player.get_metadata()
         {
-            let title = metadata.title().unwrap_or("Unknown Title").to_string();
-            let artist = metadata
-                .artists()
-                .map(|a| a.join(", "))
-                .unwrap_or_else(|| "Unknown Artist".to_string());
-            let album = metadata.album_name().unwrap_or("").to_string();
-            let length_secs = metadata.length().map(|d| d.as_secs()).unwrap_or(0);
+            let current_id = metadata.track_id().map(|id| id.to_string());
 
             let reported_pos = player
                 .get_position()
@@ -53,24 +55,49 @@ impl MediaReader for LinuxMediaReader {
                 .map(|s| s == mpris::PlaybackStatus::Playing)
                 .unwrap_or(false);
 
-            // use mpris:trackid
-            let current_id = metadata.track_id().map(|id| id.to_string());
-
-            let mut last_id = self.last_id.borrow_mut();
+            let mut cached = self.cached_track.borrow_mut();
+            let now = std::time::Instant::now();
             let mut tracked_pos = self.tracked_pos.borrow_mut();
             let mut last_tick = self.last_tick.borrow_mut();
             let mut last_reported = self.last_reported_pos.borrow_mut();
 
-            let now = std::time::Instant::now();
-
-            let is_new_song = *last_id != current_id;
+            // ON CHECK IF IT IS A NEW SONG
+            let is_new_song = cached.as_ref().map_or(true, |c| c.id != current_id);
 
             if is_new_song {
-                *last_id = current_id.clone();
+                let title = metadata.title().unwrap_or("Unknown Title").to_string();
+                let artist = metadata
+                    .artists()
+                    .map(|a| a.join(", "))
+                    .unwrap_or_else(|| "Unknown Artist".to_string());
+                let album = metadata.album_name().unwrap_or("").to_string();
+                let length_secs = metadata.length().map(|d| d.as_secs()).unwrap_or(0);
+                let art_url = metadata.art_url().map(|s| s.to_string());
+                let album_art_base64 = get_album_art_base64(&metadata).map(Arc::new);
+
+                *cached = Some(CachedTrack {
+                    id: current_id,
+                    title,
+                    artist,
+                    album,
+                    length_secs,
+                    art_url,
+                    album_art_base64,
+                });
+
                 *tracked_pos = reported_pos.min(1.0);
                 *last_reported = reported_pos;
                 *last_tick = Some(now);
             } else {
+                // CHECK IF ARTWORK CHANGED
+                let current_art_url = metadata.art_url().map(|s| s.to_string());
+                if let Some(ref mut c) = *cached {
+                    if c.art_url != current_art_url {
+                        c.album_art_base64 = get_album_art_base64(&metadata).map(Arc::new);
+                        c.art_url = current_art_url;
+                    }
+                }
+
                 let dt = last_tick
                     .map(|t| now.duration_since(t).as_secs_f64())
                     .unwrap_or(0.0);
@@ -81,45 +108,33 @@ impl MediaReader for LinuxMediaReader {
                 *last_reported = reported_pos;
 
                 if reported_pos < 1.0 {
-                    // native reset
                     *tracked_pos = reported_pos;
                 } else if (diff - dt).abs() > 3.0 && *tracked_pos > 2.0 {
-                    // manually seeking
                     *tracked_pos = reported_pos;
                 } else if is_playing {
                     *tracked_pos += dt;
                 }
             }
 
+            let track = cached.as_ref().unwrap();
             let mut position_secs = *tracked_pos as u64;
-
-            if length_secs > 0 && position_secs > length_secs {
-                position_secs = length_secs;
+            if track.length_secs > 0 && position_secs > track.length_secs {
+                position_secs = track.length_secs;
             }
-
-            // caching album art
-            let current_art_url = metadata.art_url().map(|s| s.to_string());
-            let mut last_url_ref = self.last_url.borrow_mut();
-            let mut last_art_ref = self.last_art.borrow_mut();
-
-            if *last_url_ref != current_art_url || current_art_url.is_none() {
-                *last_art_ref = get_album_art_base64(&metadata);
-                *last_url_ref = current_art_url;
-            }
-
-            let album_art_base64 = last_art_ref.clone();
 
             return Some(SongInfo {
-                title,
-                artist,
-                album,
-                album_art_base64,
+                title: track.title.clone(),
+                artist: track.artist.clone(),
+                album: track.album.clone(),
+                album_art_base64: track.album_art_base64.clone(),
                 position_secs,
-                length_secs,
+                length_secs: track.length_secs,
                 is_playing,
             });
         }
 
+        // CLEAR
+        *self.cached_track.borrow_mut() = None;
         None
     }
 }

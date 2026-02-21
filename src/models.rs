@@ -1,11 +1,12 @@
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct SongInfo {
     pub title: String,
     pub artist: String,
     pub album: String,
-    pub album_art_base64: Option<String>,
+    pub album_art_base64: Option<Arc<String>>,
     pub position_secs: u64,
     pub length_secs: u64,
     pub is_playing: bool,

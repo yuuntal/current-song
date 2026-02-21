@@ -2,6 +2,7 @@ use crate::media_reader::MediaReader;
 use crate::models::SongInfo;
 use base64::{engine::general_purpose, Engine as _};
 use std::cell::RefCell;
+use std::sync::Arc;
 use windows::Media::Control::{
     GlobalSystemMediaTransportControlsSessionManager,
     GlobalSystemMediaTransportControlsSessionPlaybackStatus,
@@ -11,7 +12,7 @@ use windows::Storage::Streams::DataReader;
 pub struct WindowsMediaReader {
     manager: Option<GlobalSystemMediaTransportControlsSessionManager>,
     last_title: RefCell<Option<String>>,
-    last_art: RefCell<Option<String>>,
+    last_art: RefCell<Option<Arc<String>>>,
 }
 
 impl MediaReader for WindowsMediaReader {
@@ -74,7 +75,7 @@ impl MediaReader for WindowsMediaReader {
         let identity = format!("{}|{}", source_app, title);
 
         if last_title_ref.as_deref() != Some(identity.as_str()) {
-            *last_art_ref = get_thumbnail_base64(&media_props);
+            *last_art_ref = get_thumbnail_base64(&media_props).map(Arc::new);
             *last_title_ref = Some(identity);
         }
 

@@ -21,7 +21,7 @@ fn song_info_serialization_roundtrip() {
         title: "Test Song".to_string(),
         artist: "Test Artist".to_string(),
         album: "Test Album".to_string(),
-        album_art_base64: Some("dGVzdA==".to_string()),
+        album_art_base64: Some(std::sync::Arc::new("dGVzdA==".to_string())),
         position_secs: 42,
         length_secs: 180,
         is_playing: true,
@@ -54,7 +54,7 @@ fn song_info_clone_is_independent() {
         title: "Original".to_string(),
         artist: "Artist".to_string(),
         album: "Album".to_string(),
-        album_art_base64: Some("abc".to_string()),
+        album_art_base64: Some(std::sync::Arc::new("abc".to_string())),
         position_secs: 10,
         length_secs: 200,
         is_playing: false,
@@ -63,17 +63,17 @@ fn song_info_clone_is_independent() {
     let mut cloned = info.clone();
 
     cloned.title = "Modified".to_string();
-    cloned.album_art_base64 = Some("modified".to_string());
+    cloned.album_art_base64 = Some(std::sync::Arc::new("modified".to_string()));
     cloned.is_playing = true;
 
     // original unchanged
     assert_eq!(info.title, "Original");
-    assert_eq!(info.album_art_base64, Some("abc".to_string()));
+    assert_eq!(info.album_art_base64, Some(std::sync::Arc::new("abc".to_string())));
     assert!(!info.is_playing);
 
     // clone updated
     assert_eq!(cloned.title, "Modified");
-    assert_eq!(cloned.album_art_base64, Some("modified".to_string()));
+    assert_eq!(cloned.album_art_base64, Some(std::sync::Arc::new("modified".to_string())));
     assert!(cloned.is_playing);
 }
 
