@@ -69,9 +69,9 @@ impl MediaReader for LinuxMediaReader {
 
             // Detect new song by track_id + title + artist so changes are
             // caught even when players return None for track_id.
-            let is_new_song = cached.as_ref().map_or(true, |c| {
-                c.id != current_id || c.title != title || c.artist != artist
-            });
+            let is_new_song = cached
+                .as_ref()
+                .is_none_or(|c| c.id != current_id || c.title != title || c.artist != artist);
 
             if is_new_song {
                 let album = metadata.album_name().unwrap_or("").to_string();
@@ -95,11 +95,11 @@ impl MediaReader for LinuxMediaReader {
             } else {
                 // CHECK IF ARTWORK CHANGED
                 let current_art_url = metadata.art_url().map(|s| s.to_string());
-                if let Some(ref mut c) = *cached {
-                    if c.art_url != current_art_url {
-                        c.album_art_base64 = get_album_art_base64(&metadata).map(Arc::new);
-                        c.art_url = current_art_url;
-                    }
+                if let Some(ref mut c) = *cached
+                    && c.art_url != current_art_url
+                {
+                    c.album_art_base64 = get_album_art_base64(&metadata).map(Arc::new);
+                    c.art_url = current_art_url;
                 }
 
                 let dt = last_tick
@@ -111,9 +111,7 @@ impl MediaReader for LinuxMediaReader {
                 let diff = reported_pos - *last_reported;
                 *last_reported = reported_pos;
 
-                if reported_pos < 1.0 {
-                    *tracked_pos = reported_pos;
-                } else if (diff - dt).abs() > 3.0 && *tracked_pos > 2.0 {
+                if reported_pos < 1.0 || ((diff - dt).abs() > 3.0 && *tracked_pos > 2.0) {
                     *tracked_pos = reported_pos;
                 } else if is_playing {
                     *tracked_pos += dt;
@@ -151,12 +149,12 @@ fn get_album_art_base64(metadata: &Metadata) -> Option<String> {
 
         let path = Path::new(path_str);
 
-        if path.exists() {
-            if let Ok(mut file) = File::open(path) {
-                let mut buffer = Vec::new();
-                if file.read_to_end(&mut buffer).is_ok() {
-                    return Some(general_purpose::STANDARD.encode(&buffer));
-                }
+        if path.exists()
+            && let Ok(mut file) = File::open(path)
+        {
+            let mut buffer = Vec::new();
+            if file.read_to_end(&mut buffer).is_ok() {
+                return Some(general_purpose::STANDARD.encode(&buffer));
             }
         }
     }
