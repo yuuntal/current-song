@@ -122,6 +122,8 @@ impl MediaReader for LinuxMediaReader {
                 position_secs = track.length_secs;
             }
 
+            // eprintln!("{} - {} [{}] pos: {}s", track.artist, track.title, track.album, position_secs);
+
             return Some(SongInfo {
                 title: track.title.clone(),
                 artist: track.artist.clone(),

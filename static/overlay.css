@@ -1,460 +1,965 @@
-/* ── Reset & Base ──────────────────────────────────── */
+/* ── Tokens ────────────────────────────────────────── */
 :root {
-    --accent: #3498db;
-    --bg: #1a1a2e;
-    --text: #ffffff;
-    --text-secondary: rgba(255, 255, 255, 0.65);
-    --font-size: 14px;
-    --radius: 14px;
-    --card-padding: 14px;
-    --art-size: 56px;
-    --art-radius: calc(var(--radius) - 4px);
-    --progress-height: 3px;
-    --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    --border: 1px solid rgba(255, 255, 255, 0.08);
-    --blur: 18px;
-    --font-family: 'Inter', sans-serif;
-    --glow-opacity: 0;
-    --glow-color: var(--accent);
-    --glow-spread: 60px;
-    --vinyl-display: none;
-    --progress-glow: none;
-    --gradient-bg: none;
-    --animation-art: none;
+  --accent: #6366f1;
+  --bg: rgba(12, 12, 18, 0.82);
+  --text: #f4f4f5;
+  --text-secondary: rgba(244, 244, 245, 0.55);
+  --font-size: 14px;
+  --radius: 16px;
+  --card-padding: 14px;
+  --art-size: 54px;
+  --art-radius: 10px;
+  --progress-height: 3px;
+  --blur: 20px;
+  --font-family: 'Inter', system-ui, sans-serif;
+  --shadow: 0 12px 48px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --border: 1px solid rgba(255, 255, 255, 0.08);
+  --vinyl-display: none;
+  --ambient-opacity: 0;
+
+  /* motion tokens */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-enter: 0.7s;
+  --dur-exit: 0.45s;
+  --stagger: 0.06s;
 }
 
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-    background: transparent;
-    font-family: var(--font-family);
-    overflow: hidden;
-    height: 100vh;
-    width: 100vw;
-    display: flex;
-    justify-content: flex-end;
-    align-items: flex-end;
+  background: transparent;
+  font-family: var(--font-family);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
 }
 
-/* ── Container ─────────────────────────────────────── */
+/* ── Card Shell ────────────────────────────────────── */
 #overlay-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--bg);
-    padding: var(--card-padding);
-    border-radius: var(--radius);
-    color: var(--text);
-    margin: 24px;
-    backdrop-filter: blur(var(--blur));
-    -webkit-backdrop-filter: blur(var(--blur));
-    box-shadow: var(--shadow);
-    border: var(--border);
-    max-width: 380px;
-    min-width: 280px;
-    transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-        transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    transform: translateY(0);
-    z-index: 1;
+  position: relative;
+  width: 340px;
+  margin: 28px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition:
+    opacity var(--dur-exit) var(--ease-smooth),
+    transform var(--dur-exit) var(--ease-smooth),
+    filter var(--dur-exit) var(--ease-smooth);
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  filter: blur(0);
+  z-index: 1;
+  will-change: transform, opacity, filter;
 }
 
-#overlay-container.hidden {
-    opacity: 0;
-    transform: translateY(12px);
-    pointer-events: none;
+#overlay-container.state-hidden {
+  opacity: 0;
+  transform: translateY(18px) scale(0.96);
+  filter: blur(6px);
+  pointer-events: none;
 }
 
-/* ── Glow Effect (behind card) ─────────────────────── */
-#glow-effect {
-    position: absolute;
-    inset: -20px;
-    border-radius: var(--radius);
-    background: radial-gradient(ellipse at center, var(--glow-color), transparent 70%);
-    opacity: var(--glow-opacity);
-    filter: blur(var(--glow-spread));
-    z-index: -1;
-    pointer-events: none;
-    transition: opacity 0.5s;
+/* ── Ambient Blurred Background ────────────────────── */
+#ambient-bg {
+  position: absolute;
+  inset: -30px;
+  z-index: 0;
+  overflow: hidden;
+  opacity: var(--ambient-opacity);
+  transition: opacity 1.2s var(--ease-smooth);
+}
+
+#ambient-art {
+  width: calc(100% + 60px);
+  height: calc(100% + 60px);
+  object-fit: cover;
+  filter: blur(50px) saturate(1.8) brightness(0.5);
+  transform: scale(1.3);
+}
+
+/* ── Card Background ───────────────────────────────── */
+#card-bg {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border: var(--border);
+  border-radius: var(--radius);
+  z-index: 1;
+}
+
+/* ── Border Glow (animated highlight edge) ─────────── */
+#border-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s var(--ease-smooth);
+}
+
+#border-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  padding: 1px;
+  background: conic-gradient(from 0deg,
+      transparent 0%,
+      var(--accent) 10%,
+      transparent 20%,
+      transparent 100%);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: border-spin 4s linear infinite;
+}
+
+@keyframes border-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Card Content ──────────────────────────────────── */
+#card-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: var(--card-padding);
+  z-index: 3;
 }
 
 /* ── Album Art ─────────────────────────────────────── */
+#artwork-wrapper {
+  flex-shrink: 0;
+}
+
 #artwork-container {
-    position: relative;
-    width: var(--art-size);
-    height: var(--art-size);
-    border-radius: var(--art-radius);
-    overflow: hidden;
-    flex-shrink: 0;
+  position: relative;
+  width: var(--art-size);
+  height: var(--art-size);
+  border-radius: var(--art-radius);
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  transform: scale(1);
+  transition: transform 0.5s var(--ease-spring);
+}
+
+.song-change #artwork-container {
+  animation: art-pop 0.65s var(--ease-spring);
+}
+
+@keyframes art-pop {
+  0% {
+    transform: scale(0.7) rotate(-4deg);
+    opacity: 0;
+  }
+
+  60% {
+    transform: scale(1.06) rotate(1deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
 }
 
 #album-art {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    animation: var(--animation-art);
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Glass shine on art */
+#art-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.2) 0%,
+      transparent 40%,
+      transparent 60%,
+      rgba(255, 255, 255, 0.05) 100%);
+  pointer-events: none;
 }
 
 #vinyl-ring {
-    display: var(--vinyl-display);
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.15);
-    box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.5),
-        0 0 4px rgba(0, 0, 0, 0.3);
-    pointer-events: none;
+  display: var(--vinyl-display);
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
 }
 
-/* ── Song Info ─────────────────────────────────────── */
+/* ── Info Container ────────────────────────────────── */
 #info-container {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
+/* ── Staggered Rows ────────────────────────────────── */
+#title-row,
+#artist-row,
+#progress-row,
+#time-row {
+  overflow: hidden;
+}
+
+.song-change #title-row>* {
+  animation: text-reveal 0.55s var(--ease-out) calc(var(--stagger) * 0) both;
+}
+
+.song-change #artist-row>* {
+  animation: text-reveal 0.55s var(--ease-out) calc(var(--stagger) * 1) both;
+}
+
+.song-change #progress-row>* {
+  animation: wipe-in 0.6s var(--ease-out) calc(var(--stagger) * 2) both;
+}
+
+.song-change #time-row>* {
+  animation: text-reveal 0.45s var(--ease-out) calc(var(--stagger) * 3) both;
+}
+
+@keyframes text-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(100%);
+    filter: blur(4px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes wipe-in {
+  0% {
+    opacity: 0;
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
+/* ── Title ─────────────────────────────────────────── */
 #song-title {
-    font-size: calc(var(--font-size) * 1.05);
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    letter-spacing: -0.01em;
-    line-height: 1.3;
+  font-size: calc(var(--font-size) * 1.07);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
 }
 
+/* ── Artist ────────────────────────────────────────── */
 #artist-name {
-    font-size: calc(var(--font-size) * 0.85);
-    color: var(--text-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.3;
+  font-size: calc(var(--font-size) * 0.82);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.35;
+  font-weight: 400;
 }
 
-/* ── Progress ──────────────────────────────────────── */
+/* ── Progress Bar ──────────────────────────────────── */
 #progress-container {
-    width: 100%;
-    height: var(--progress-height);
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 99px;
-    overflow: hidden;
-    margin-top: 6px;
+  width: 100%;
+  height: var(--progress-height);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: 7px;
+  position: relative;
 }
 
 #progress-bar {
-    position: relative;
-    height: 100%;
-    background: var(--accent);
-    width: 0%;
-    border-radius: 99px;
-    transition: width 1s linear;
+  height: 100%;
+  width: 0%;
+  border-radius: 99px;
+  background: var(--accent);
+  position: relative;
+  transition: width 1s linear;
 }
 
-#progress-glow {
-    display: var(--progress-glow);
-    position: absolute;
-    right: 0;
-    top: -3px;
-    width: 8px;
-    height: calc(var(--progress-height) + 6px);
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 8px var(--accent), 0 0 16px var(--accent);
+/* Bright dot at the head of progress */
+#progress-head {
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #fff;
+  transform: translateY(-50%);
+  box-shadow: 0 0 6px var(--accent), 0 0 12px var(--accent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.playing #progress-head {
+  opacity: 1;
 }
 
 /* ── Time ──────────────────────────────────────────── */
 #time-display {
-    display: flex;
-    gap: 4px;
-    font-size: calc(var(--font-size) * 0.72);
-    color: var(--text-secondary);
-    font-variant-numeric: tabular-nums;
-    margin-top: 2px;
+  display: flex;
+  gap: 4px;
+  font-size: calc(var(--font-size) * 0.7);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  margin-top: 3px;
+  font-weight: 400;
 }
 
 #time-separator {
-    opacity: 0.5;
+  opacity: 0.4;
 }
 
-/* ── Animations ────────────────────────────────────── */
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
+/* ── Entrance / Exit ───────────────────────────────── */
+#overlay-container.state-entering {
+  animation: card-enter var(--dur-enter) var(--ease-out) both;
 }
 
-@keyframes pulse-glow {
+@keyframes card-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.92);
+    filter: blur(8px);
+  }
 
-    0%,
-    100% {
-        opacity: 0.4;
-    }
-
-    50% {
-        opacity: 0.8;
-    }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
 }
 
-@keyframes gradient-shift {
-    0% {
-        background-position: 0% 50%;
-    }
-
-    50% {
-        background-position: 100% 50%;
-    }
-
-    100% {
-        background-position: 0% 50%;
-    }
-}
-
-/* ── Song Transition Animations ────────────────────── */
+/* ── Song Change (whole card) ──────────────────────── */
 @keyframes anim-fade {
-    0% {
-        opacity: 0;
-    }
+  0% {
+    opacity: 0;
+    filter: blur(4px);
+  }
 
-    100% {
-        opacity: 1;
-    }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+  }
 }
 
 @keyframes anim-slide_up {
-    0% {
-        opacity: 0;
-        transform: translateY(20px);
-    }
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+    filter: blur(4px);
+  }
 
-    100% {
-        opacity: 1;
-        transform: translateY(0);
-    }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
 }
 
 @keyframes anim-slide_left {
-    0% {
-        opacity: 0;
-        transform: translateX(30px);
-    }
+  0% {
+    opacity: 0;
+    transform: translateX(28px);
+    filter: blur(4px);
+  }
 
-    100% {
-        opacity: 1;
-        transform: translateX(0);
-    }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
+  }
 }
 
 @keyframes anim-flip {
-    0% {
-        opacity: 0;
-        transform: perspective(400px) rotateY(90deg);
-    }
+  0% {
+    opacity: 0;
+    transform: perspective(600px) rotateY(80deg);
+  }
 
-    100% {
-        opacity: 1;
-        transform: perspective(400px) rotateY(0deg);
-    }
+  100% {
+    opacity: 1;
+    transform: perspective(600px) rotateY(0);
+  }
 }
 
 @keyframes anim-bounce {
-    0% {
-        opacity: 0;
-        transform: scale(0.6);
-    }
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+    filter: blur(6px);
+  }
 
-    50% {
-        opacity: 1;
-        transform: scale(1.08);
-    }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+    filter: blur(0);
+  }
 
-    70% {
-        transform: scale(0.95);
-    }
+  75% {
+    transform: scale(0.97);
+  }
 
-    100% {
-        transform: scale(1);
-    }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .anim-fade {
-    animation: anim-fade 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: anim-fade 0.6s var(--ease-out);
 }
 
 .anim-slide_up {
-    animation: anim-slide_up 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: anim-slide_up 0.55s var(--ease-out);
 }
 
 .anim-slide_left {
-    animation: anim-slide_left 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: anim-slide_left 0.55s var(--ease-out);
 }
 
 .anim-flip {
-    animation: anim-flip 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: anim-flip 0.6s var(--ease-out);
 }
 
 .anim-bounce {
-    animation: anim-bounce 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: anim-bounce 0.65s var(--ease-spring);
 }
 
-/* ═══════════════════════════════════════════════════
-   THEME: Frosted Glass (default)
-   ═══════════════════════════════════════════════════ */
+
+/* ── Common Animations ─────────────────────────────── */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    left: -100%;
+  }
+
+  100% {
+    left: 200%;
+  }
+}
+
+@keyframes breathe {
+
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes neon-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 30%, transparent),
+      0 0 24px color-mix(in srgb, var(--accent) 15%, transparent);
+    border-color: var(--accent);
+  }
+
+  50% {
+    box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 50%, transparent),
+      0 0 40px color-mix(in srgb, var(--accent) 25%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 80%, white);
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   T H E M E S
+   ═══════════════════════════════════════════════════════ */
+
+
+/* ── Frosted Glass ─────────────────────────────────── */
 .theme-frosted_glass {
-    --bg: #1a1a2e;
-    --border: 1px solid rgba(255, 255, 255, 0.12);
-    --shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --bg: rgba(16, 16, 28, 0.55);
+  --border: 1px solid rgba(255, 255, 255, 0.12);
+  --blur: 28px;
+  --shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  --ambient-opacity: 0.55;
 }
 
-/* ═══════════════════════════════════════════════════
-   THEME: Neon Glow
-   ═══════════════════════════════════════════════════ */
+.theme-frosted_glass #card-bg {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 50%),
+    var(--bg);
+}
+
+/* Top highlight edge */
+.theme-frosted_glass #card-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+}
+
+.theme-frosted_glass #border-glow {
+  opacity: 0.15;
+}
+
+.theme-frosted_glass #progress-bar {
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 60%, white));
+}
+
+
+/* ── Neon Glow ─────────────────────────────────────── */
 .theme-neon_glow {
-    --bg: #0a0a1a;
-    --border: 1px solid var(--accent);
-    --shadow: 0 0 20px rgba(0, 0, 0, 0.6), 0 0 40px color-mix(in srgb, var(--accent) 20%, transparent);
-    --glow-opacity: 0.35;
-    --glow-spread: 40px;
-    --progress-glow: block;
+  --bg: rgba(4, 4, 16, 0.92);
+  --border: 1.5px solid var(--accent);
+  --shadow: 0 0 30px color-mix(in srgb, var(--accent) 25%, transparent);
+  --ambient-opacity: 0.35;
 }
 
 .theme-neon_glow #overlay-container {
-    border-color: var(--accent);
-    box-shadow: var(--shadow),
-        inset 0 0 30px color-mix(in srgb, var(--accent) 5%, transparent);
+  animation: neon-pulse 3.5s ease-in-out infinite;
+}
+
+.theme-neon_glow #border-glow {
+  opacity: 0.5;
+}
+
+.theme-neon_glow #card-bg {
+  background: var(--bg);
+  box-shadow: inset 0 0 40px color-mix(in srgb, var(--accent) 6%, transparent);
 }
 
 .theme-neon_glow #song-title {
-    text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 40%, transparent);
+  text-shadow: 0 0 14px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
-/* ═══════════════════════════════════════════════════
-   THEME: Vinyl
-   ═══════════════════════════════════════════════════ */
+.theme-neon_glow #progress-bar {
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent), 0 0 20px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.theme-neon_glow #progress-head {
+  box-shadow: 0 0 8px var(--accent), 0 0 20px var(--accent);
+}
+
+.theme-neon_glow #artwork-container {
+  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 35%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+
+/* ── Vinyl ─────────────────────────────────────────── */
 .theme-vinyl {
-    --bg: #1e140f;
-    --border: 1px solid rgba(180, 140, 80, 0.25);
-    --art-radius: 50%;
-    --vinyl-display: block;
-    --shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-    --font-family: 'Playfair Display', serif;
+  --bg: linear-gradient(145deg, #28200f, #161008);
+  --border: 1px solid rgba(200, 160, 80, 0.15);
+  --shadow: 0 10px 36px rgba(0, 0, 0, 0.55);
+  --font-family: 'Playfair Display', serif;
+  --text-secondary: rgba(200, 170, 110, 0.7);
+  --art-radius: 50%;
+  --vinyl-display: block;
+}
+
+.theme-vinyl #card-bg {
+  background: linear-gradient(145deg, #28200f, #161008);
 }
 
 .theme-vinyl.playing #album-art {
-    animation: spin 4s linear infinite;
+  animation: spin 5s linear infinite;
+}
+
+/* Center hole */
+.theme-vinyl #artwork-container::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #161008;
+  border: 1.5px solid rgba(200, 160, 80, 0.25);
+  z-index: 4;
+}
+
+.theme-vinyl #progress-bar {
+  background: linear-gradient(90deg, #b8860b, #d4a057);
 }
 
 .theme-vinyl #progress-container {
-    background: rgba(180, 140, 80, 0.15);
+  background: rgba(200, 160, 80, 0.1);
 }
 
-/* ═══════════════════════════════════════════════════
-   THEME: Minimal
-   ═══════════════════════════════════════════════════ */
+.theme-vinyl #artwork-container {
+  box-shadow: 0 0 0 3px rgba(200, 160, 80, 0.12), 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+
+/* ── Minimal ───────────────────────────────────────── */
 .theme-minimal {
-    --bg: #111111;
-    --border: none;
-    --shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-    --radius: 6px;
-    --card-padding: 12px;
-    --progress-height: 2px;
+  --bg: #0c0c0c;
+  --border: none;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --radius: 6px;
+  --art-radius: 4px;
+  --card-padding: 14px 14px 14px 18px;
+  --progress-height: 2px;
+}
+
+.theme-minimal #card-bg {
+  background: #0c0c0c;
+  backdrop-filter: none;
+}
+
+/* Accent left strip */
+.theme-minimal #card-bg::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+}
+
+.theme-minimal #art-shine {
+  display: none;
 }
 
 .theme-minimal #song-title {
-    font-weight: 400;
+  font-weight: 500;
 }
 
-/* ═══════════════════════════════════════════════════
-   THEME: Spotify
-   ═══════════════════════════════════════════════════ */
+.theme-minimal #artist-name {
+  font-weight: 300;
+  opacity: 0.5;
+}
+
+.theme-minimal #time-display {
+  opacity: 0.35;
+}
+
+.theme-minimal #ambient-bg {
+  display: none;
+}
+
+.theme-minimal #border-glow {
+  display: none;
+}
+
+
+/* ── Spotify ───────────────────────────────────────── */
 .theme-spotify {
-    --accent: #1DB954;
-    --bg: #121212;
-    --border: none;
-    --shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-    --radius: 8px;
+  --accent: #1DB954;
+  --bg: #181818;
+  --border: none;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --radius: 8px;
+  --art-size: 60px;
+  --art-radius: 4px;
+  --progress-height: 4px;
+  --text-secondary: #b3b3b3;
+  --ambient-opacity: 0.25;
 }
 
-/* ═══════════════════════════════════════════════════
-   THEME: Cyberpunk
-   ═══════════════════════════════════════════════════ */
+.theme-spotify #card-bg {
+  background: #181818;
+}
+
+/* Bottom green line */
+.theme-spotify #card-bg::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 5%, #1DB954 50%, transparent 95%);
+  opacity: 0.55;
+}
+
+.theme-spotify #progress-bar {
+  background: #1DB954;
+}
+
+.theme-spotify #progress-container {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+}
+
+.theme-spotify #progress-bar {
+  border-radius: 2px;
+}
+
+.theme-spotify #song-title {
+  font-weight: 700;
+}
+
+.theme-spotify #artist-name {
+  color: #b3b3b3;
+}
+
+.theme-spotify #progress-head {
+  background: #fff;
+  box-shadow: 0 0 4px rgba(29, 185, 84, 0.6);
+}
+
+
+/* ── Cyberpunk ─────────────────────────────────────── */
 .theme-cyberpunk {
-    --accent: #ff2d95;
-    --bg: #0a0214;
-    --text: #f0e6ff;
-    --text-secondary: rgba(0, 255, 255, 0.7);
-    --border: 1px solid #ff2d95;
-    --shadow: 0 0 15px rgba(255, 45, 149, 0.3), 0 0 30px rgba(0, 255, 255, 0.1);
-    --radius: 2px;
-    --glow-opacity: 0.25;
-    --glow-color: #ff2d95;
-    --progress-glow: block;
-    --font-family: 'JetBrains Mono', monospace;
+  --accent: #ff2d95;
+  --bg: rgba(6, 1, 16, 0.95);
+  --text: #eee0ff;
+  --text-secondary: #00ffe0;
+  --border: none;
+  --shadow: 0 0 24px rgba(255, 45, 149, 0.2), 0 0 48px rgba(0, 255, 224, 0.06);
+  --radius: 0px;
+  --art-radius: 0px;
+  --font-family: 'JetBrains Mono', monospace;
+  --progress-height: 3px;
+  --ambient-opacity: 0.2;
 }
 
-.theme-cyberpunk #overlay-container {
-    border-left: 3px solid #ff2d95;
-    border-right: 3px solid #00ffff;
+.theme-cyberpunk #card-bg {
+  background: rgba(6, 1, 16, 0.95);
+  border-left: 2.5px solid #ff2d95;
+  border-right: 2.5px solid #00ffe0;
+  border-top: 1px solid rgba(255, 45, 149, 0.2);
+  border-bottom: 1px solid rgba(0, 255, 224, 0.2);
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+
+/* Scanlines */
+.theme-cyberpunk #card-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg,
+      transparent, transparent 2px,
+      rgba(0, 255, 224, 0.015) 2px,
+      rgba(0, 255, 224, 0.015) 4px);
+  pointer-events: none;
+}
+
+/* NOW PLAYING label */
+.theme-cyberpunk #card-bg::after {
+  content: 'NOW PLAYING';
+  position: absolute;
+  top: 5px;
+  right: 14px;
+  font-size: 7px;
+  letter-spacing: 0.2em;
+  color: #00ffe0;
+  opacity: 0.35;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.theme-cyberpunk #border-glow {
+  display: none;
 }
 
 .theme-cyberpunk #progress-bar {
-    background: linear-gradient(90deg, #ff2d95, #00ffff);
+  background: linear-gradient(90deg, #ff2d95, #ff6ec7, #00ffe0);
+  box-shadow: 0 0 8px rgba(255, 45, 149, 0.5);
+}
+
+.theme-cyberpunk #progress-container {
+  background: rgba(0, 255, 224, 0.06);
 }
 
 .theme-cyberpunk #song-title {
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: calc(var(--font-size) * 0.95);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: calc(var(--font-size) * 0.88);
+  text-shadow: 0 0 10px rgba(255, 45, 149, 0.5), 1.5px 0 0 rgba(0, 255, 224, 0.12);
 }
 
-/* ═══════════════════════════════════════════════════
-   THEME: Pastel Dream
-   ═══════════════════════════════════════════════════ */
+.theme-cyberpunk #artist-name {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: calc(var(--font-size) * 0.72);
+}
+
+.theme-cyberpunk #time-display {
+  color: #00ffe0;
+  opacity: 0.6;
+}
+
+.theme-cyberpunk #artwork-container {
+  box-shadow: 0 0 10px rgba(255, 45, 149, 0.3), 0 0 4px rgba(0, 255, 224, 0.15);
+}
+
+
+/* ── Pastel Dream ──────────────────────────────────── */
 .theme-pastel_dream {
-    --accent: #a78bfa;
-    --bg: #1f1635;
-    --text: #fdf4ff;
-    --text-secondary: rgba(253, 244, 255, 0.7);
-    --border: 1px solid rgba(167, 139, 250, 0.25);
-    --shadow: 0 8px 32px rgba(167, 139, 250, 0.2);
-    --radius: 20px;
+  --accent: #a78bfa;
+  --bg: linear-gradient(135deg, rgba(38, 20, 62, 0.82), rgba(45, 18, 55, 0.82));
+  --text: #faf5ff;
+  --text-secondary: rgba(250, 245, 255, 0.55);
+  --border: 1px solid rgba(167, 139, 250, 0.15);
+  --shadow: 0 12px 40px rgba(100, 50, 170, 0.3);
+  --radius: 22px;
+  --blur: 30px;
+  --art-radius: 14px;
+  --progress-height: 3.5px;
+  --ambient-opacity: 0.45;
+}
+
+.theme-pastel_dream #card-bg {
+  background:
+    linear-gradient(180deg, rgba(167, 139, 250, 0.06) 0%, transparent 40%),
+    linear-gradient(135deg, rgba(38, 20, 62, 0.82), rgba(45, 18, 55, 0.82));
+}
+
+/* Top gradient edge */
+.theme-pastel_dream #card-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(167, 139, 250, 0.35), rgba(244, 114, 182, 0.35), transparent);
+}
+
+.theme-pastel_dream #border-glow {
+  opacity: 0.2;
 }
 
 .theme-pastel_dream #progress-bar {
-    background: linear-gradient(90deg, #a78bfa, #f472b6, #fb923c);
-    background-size: 200% 100%;
-    animation: gradient-shift 3s ease infinite;
+  background: linear-gradient(90deg, #a78bfa, #f472b6, #fb923c);
+  background-size: 200% 100%;
+  animation: gradient-shift 4s ease infinite;
 }
 
-/* ═══════════════════════════════════════════════════
-   THEME: Gradient Wave
-   ═══════════════════════════════════════════════════ */
+/* Gradient text title */
+.theme-pastel_dream #song-title {
+  background: linear-gradient(90deg, #e9d5ff, #fbcfe8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 600;
+}
+
+.theme-pastel_dream #artwork-container {
+  box-shadow: 0 4px 24px rgba(167, 139, 250, 0.3);
+}
+
+
+/* ── Gradient Wave ─────────────────────────────────── */
 .theme-gradient_wave {
-    --bg: linear-gradient(135deg, #4338ca, #7c3aed, #be185d);
-    --border: none;
-    --shadow: 0 12px 40px rgba(99, 102, 241, 0.3);
-    --radius: 16px;
+  --bg: linear-gradient(135deg, #4338ca, #7c3aed, #be185d, #4338ca);
+  --border: none;
+  --shadow: 0 16px 48px rgba(67, 56, 202, 0.35);
+  --radius: 16px;
+  --text: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --progress-height: 3px;
+  --art-radius: 10px;
 }
 
-.theme-gradient_wave #overlay-container {
-    background-size: 200% 200%;
-    animation: gradient-shift 6s ease infinite;
+.theme-gradient_wave #card-bg {
+  background: linear-gradient(135deg, #4338ca, #7c3aed, #be185d, #4338ca);
+  background-size: 300% 300%;
+  animation: gradient-shift 8s ease infinite;
+  backdrop-filter: none;
 }
 
-.theme-gradient_wave #progress-container {
-    background: rgba(255, 255, 255, 0.2);
+/* Overlay gradient for depth */
+.theme-gradient_wave #card-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, transparent 35%, rgba(0, 0, 0, 0.15) 100%);
+  pointer-events: none;
+}
+
+.theme-gradient_wave #ambient-bg {
+  display: none;
+}
+
+.theme-gradient_wave #border-glow {
+  display: none;
 }
 
 .theme-gradient_wave #progress-bar {
-    background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+}
+
+.theme-gradient_wave #progress-container {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.theme-gradient_wave #song-title {
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.theme-gradient_wave #artwork-container {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+}
+
+.theme-gradient_wave #progress-head {
+  background: #fff;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
 }

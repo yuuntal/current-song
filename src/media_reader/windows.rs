@@ -80,7 +80,7 @@ impl MediaReader for WindowsMediaReader {
         }
 
         let album_art_base64 = last_art_ref.clone();
-
+        // eprintln!("{} - {} [{}]", artist, title, source_app);
         Some(SongInfo {
             title,
             artist,
