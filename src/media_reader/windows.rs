@@ -1,10 +1,11 @@
 use crate::media_reader::MediaReader;
 use crate::models::SongInfo;
-use base64::{engine::general_purpose, Engine as _};
+use base64::{Engine as _, engine::general_purpose};
 use std::cell::RefCell;
 use std::sync::Arc;
 use windows::Media::Control::{
     GlobalSystemMediaTransportControlsSessionManager,
+    GlobalSystemMediaTransportControlsSessionMediaProperties,
     GlobalSystemMediaTransportControlsSessionPlaybackStatus,
 };
 use windows::Storage::Streams::DataReader;
@@ -65,6 +66,7 @@ impl MediaReader for WindowsMediaReader {
         let length_secs = timeline
             .EndTime()
             .map(|d| d.Duration as u64 / 10_000_000)
+            .ok()
             .filter(|&v| v > 0)
             .unwrap_or(0);
 
@@ -95,4 +97,20 @@ impl MediaReader for WindowsMediaReader {
             is_playing,
         })
     }
+}
+
+fn get_thumbnail_base64(
+    media_props: &GlobalSystemMediaTransportControlsSessionMediaProperties,
+) -> Option<String> {
+    let thumb_ref = media_props.Thumbnail().ok()?;
+    let stream = thumb_ref.OpenReadAsync().ok()?.get().ok()?;
+    let size = stream.Size().ok()? as u32;
+    if size == 0 {
+        return None;
+    }
+    let reader = DataReader::CreateDataReader(&stream.GetInputStreamAt(0).ok()?).ok()?;
+    reader.LoadAsync(size).ok()?.get().ok()?;
+    let mut buf = vec![0u8; size as usize];
+    reader.ReadBytes(&mut buf).ok()?;
+    Some(general_purpose::STANDARD.encode(&buf))
 }

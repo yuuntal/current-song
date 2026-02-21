@@ -45,6 +45,12 @@ impl MediaReader for LinuxMediaReader {
         {
             let current_id = metadata.track_id().map(|id| id.to_string());
 
+            let title = metadata.title().unwrap_or("Unknown Title").to_string();
+            let artist = metadata
+                .artists()
+                .map(|a| a.join(", "))
+                .unwrap_or_else(|| "Unknown Artist".to_string());
+
             let reported_pos = player
                 .get_position()
                 .map(|d| d.as_secs_f64())
@@ -61,15 +67,13 @@ impl MediaReader for LinuxMediaReader {
             let mut last_tick = self.last_tick.borrow_mut();
             let mut last_reported = self.last_reported_pos.borrow_mut();
 
-            // ON CHECK IF IT IS A NEW SONG
-            let is_new_song = cached.as_ref().map_or(true, |c| c.id != current_id);
+            // Detect new song by track_id + title + artist so changes are
+            // caught even when players return None for track_id.
+            let is_new_song = cached.as_ref().map_or(true, |c| {
+                c.id != current_id || c.title != title || c.artist != artist
+            });
 
             if is_new_song {
-                let title = metadata.title().unwrap_or("Unknown Title").to_string();
-                let artist = metadata
-                    .artists()
-                    .map(|a| a.join(", "))
-                    .unwrap_or_else(|| "Unknown Artist".to_string());
                 let album = metadata.album_name().unwrap_or("").to_string();
                 let length_secs = metadata.length().map(|d| d.as_secs()).unwrap_or(0);
                 let art_url = metadata.art_url().map(|s| s.to_string());
