@@ -4,59 +4,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Current Song Overlay</title>
-    <link rel="stylesheet" href="overlay.css">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;600&family=Playfair+Display:wght@400;700&display=swap"
-        rel="stylesheet">
+    <title>OBS Currently Playing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/base.css?v=2">
+    <link rel="stylesheet" href="css/components.css?v=2">
+    <link rel="stylesheet" href="css/layouts.css?v=2">
+    <link rel="stylesheet" href="css/animations.css?v=2">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.4.0/color-thief.umd.js"></script>
 </head>
 
 <body>
-    <div id="overlay-container" class="state-hidden">
-        <!-- Blurred album art ambient background -->
-        <div id="ambient-bg">
-            <img id="ambient-art" src="" alt="">
+    <div id="widget-wrapper" class="widget-wrapper">
+        <div id="w-art-box">
+            <img id="w-art" class="js-art" src="" />
         </div>
-        <div id="card-bg"></div>
 
-        <!-- Border highlight -->
-        <div id="border-glow"></div>
+        <div class="info-box">
+            <h1 id="w-title" class="js-title">Waiting for Media...</h1>
+            <h2 id="w-artist" class="js-artist">Artist</h2>
+        </div>
 
-        <!-- Content -->
-        <div id="card-content">
-            <div id="artwork-wrapper">
-                <div id="artwork-container">
-                    <img id="album-art" src="" alt="">
-                    <div id="art-shine"></div>
-                    <div id="vinyl-ring"></div>
-                </div>
+        <div class="progress-container">
+            <span id="w-time" class="js-time">0:00</span>
+            <div id="w-prog-bg" class="prog-bg">
+                <div id="w-prog-fill" class="prog-fill js-fill"></div>
             </div>
-
-            <div id="info-container">
-                <div id="title-row">
-                    <div id="song-title">Waiting for music...</div>
-                </div>
-                <div id="artist-row">
-                    <div id="artist-name"></div>
-                </div>
-                <div id="progress-row">
-                    <div id="progress-container">
-                        <div id="progress-bar">
-                            <div id="progress-head"></div>
-                        </div>
-                    </div>
-                </div>
-                <div id="time-row">
-                    <div id="time-display">
-                        <span id="current-time">0:00</span>
-                        <span id="time-separator">/</span>
-                        <span id="total-time">0:00</span>
-                    </div>
-                </div>
-            </div>
+            <span id="w-duration" class="js-duration">0:00</span>
         </div>
     </div>
-    <script src="overlay.js"></script>
+
+    <script type="module" src="js/ui.js?v=2"></script>
 </body>
 
 </html>

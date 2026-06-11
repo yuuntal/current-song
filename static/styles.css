@@ -1,0 +1,478 @@
+:root {
+    --accent-color: #ee6c4d;
+    --text-primary: #f5f5f5;
+    --text-secondary: #a8a8a8;
+    --bg-color: rgba(10, 10, 10, 0.92);
+    --border-color: #f5f5f5;
+    --border-width: 3px;
+    --shadow-offset: 4px;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    color: var(--text-primary);
+    overflow: hidden;
+    background: transparent;
+    font-family: "Space Grotesk", sans-serif;
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+}
+
+body.top-left {
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+body.top-right {
+    justify-content: flex-end;
+    align-items: flex-start;
+}
+body.bottom-left {
+    justify-content: flex-start;
+    align-items: flex-end;
+}
+body.bottom-right {
+    justify-content: flex-end;
+    align-items: flex-end;
+}
+
+.widget-wrapper {
+    background: var(--bg-color);
+    border: var(--border-width) solid var(--border-color);
+    box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--border-color);
+    overflow: hidden;
+    position: relative;
+        transition:
+        width 0.4s linear,
+        height 0.4s linear;
+    width: 380px;
+    height: 320px;
+}
+
+.anim-morph {
+    position: absolute;
+    transition: all 0.4s linear;
+    box-sizing: border-box;
+}
+
+#w-art {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+        border-radius: 0;
+}
+
+#w-play-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--text-primary);
+}
+
+#w-bg-dots {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.dot {
+    width: 3px;
+    height: 3px;
+    background: var(--accent-color);
+    transition: background 0.4s;
+        border-radius: 0;
+}
+
+.scroll-wrap {
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#w-title {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 900;
+    margin: 0;
+    white-space: nowrap;
+    display: inline-block;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    transition:
+        font-size 0.4s,
+        color 0.4s;
+    color: var(--accent-color);
+}
+
+#w-artist {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin: 0;
+    white-space: nowrap;
+    display: inline-block;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    transition: font-size 0.4s;
+}
+
+#w-separator {
+    color: var(--border-color);
+    font-size: 12px;
+    font-family: "Space Mono", monospace;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: -0.05em;
+}
+
+.js-time,
+.js-duration {
+    font-family: "Space Mono", monospace;
+    font-size: 10px;
+    color: var(--text-secondary);
+    font-weight: 400;
+    text-align: center;
+    letter-spacing: 0.02em;
+}
+
+.prog-bg {
+    background: rgba(245, 245, 245, 0.12);
+    border: 1px solid rgba(245, 245, 245, 0.25);
+    border-radius: 0;
+    overflow: hidden;
+}
+
+.prog-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent-color);
+        transition:
+        width 0.3s linear,
+        background 0.4s;
+}
+
+body.large .widget-wrapper {
+    }
+
+body.large #w-art-box {
+    top: 0;
+    left: 0;
+    width: 380px;
+    height: 180px;
+    border-radius: 0;
+    opacity: 1;
+    transform: scale(1);
+        border-bottom: var(--border-width) solid var(--accent-color);
+}
+
+body.large #w-play-icon {
+    width: 36px;
+    height: 36px;
+    right: auto;
+    bottom: auto;
+    border-radius: 0;
+    background: var(--bg-color);
+    border: var(--border-width) solid var(--border-color);
+    box-shadow: 3px 3px 0 var(--border-color);
+    opacity: 1;
+    transform: scale(1);
+    top: 158px;
+    left: 326px;
+}
+
+body.large #w-play-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+body.large #w-bg-dots {
+    opacity: 0;
+    transform: scale(0.5);
+    top: 130px;
+    left: 190px;
+}
+
+body.large #w-title-box {
+    top: 208px;
+    left: 20px;
+    width: 340px;
+    height: 32px;
+    opacity: 1;
+    text-align: center;
+}
+
+body.large #w-title {
+    font-size: 21px;
+    color: var(--accent-color);
+}
+
+body.large #w-separator {
+    opacity: 0;
+    top: 225px;
+    left: 190px;
+    transform: scale(0);
+}
+
+body.large #w-artist-box {
+    top: 242px;
+    left: 20px;
+    width: 340px;
+    height: 20px;
+    opacity: 1;
+    text-align: center;
+}
+
+body.large #w-artist {
+    font-size: 13px;
+}
+
+body.large #w-time {
+    top: 278px;
+    left: 20px;
+    width: 34px;
+    opacity: 1;
+}
+
+body.large #w-prog-bg {
+    top: 283px;
+    left: 62px;
+    width: 256px;
+    height: 5px;
+    opacity: 1;
+}
+
+body.large #w-duration {
+    top: 278px;
+    left: 326px;
+    width: 34px;
+    opacity: 1;
+}
+
+body.large #w-swipe-bar {
+    top: 183px;
+    left: 0;
+    width: 380px;
+    height: 108px;
+}
+
+body.compact #w-bg-dots {
+    top: 25px;
+    left: 15px;
+    opacity: 0;
+    transform: scale(0.5);
+}
+
+body.compact #w-art-box {
+    top: 10px;
+    left: 15px;
+    width: 40px;
+    height: 40px;
+    border-radius: 0;
+    border: 2px solid var(--border-color);
+    opacity: 1;
+    transform: scale(1);
+}
+
+body.compact #w-play-icon {
+    opacity: 0;
+    transform: scale(0.5);
+    width: 20px;
+    height: 20px;
+    left: 40px;
+    top: 20px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+body.compact #w-title-box {
+    top: 15px;
+    height: 20px;
+    opacity: 1;
+    text-align: left;
+}
+
+body.compact #w-title {
+    font-size: 14px;
+    color: var(--accent-color);
+}
+
+body.compact #w-separator {
+    top: 15px;
+    opacity: 1;
+    transform: scale(1);
+}
+
+body.compact #w-artist-box {
+    top: 16px;
+    height: 20px;
+    opacity: 1;
+    text-align: left;
+}
+
+body.compact #w-artist {
+    font-size: 13px;
+}
+
+body.compact #w-prog-bg {
+    top: 40px;
+    height: 4px;
+    opacity: 1;
+}
+
+body.compact #w-time {
+    opacity: 0;
+    top: 40px;
+    left: 85px;
+}
+
+body.compact #w-duration {
+    opacity: 0;
+    top: 40px;
+    left: 200px;
+}
+
+body.compact #w-swipe-bar {
+    top: 8px;
+    left: 70px;
+    height: 28px;
+}
+
+body.thin #w-play-icon {
+    top: 12px;
+    left: 15px;
+    width: 16px;
+    height: 16px;
+    opacity: 1;
+    transform: scale(1);
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+body.thin #w-play-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+body.thin #w-art-box {
+    opacity: 0;
+    transform: scale(0.5);
+    top: 12px;
+    left: 15px;
+    width: 16px;
+    height: 16px;
+    border-radius: 0;
+}
+
+body.thin #w-title-box {
+    top: 11px;
+    height: 18px;
+    opacity: 1;
+    text-align: left;
+}
+
+body.thin #w-title {
+    font-size: 13px;
+}
+
+body.thin #w-separator {
+    top: 11px;
+    opacity: 1;
+    transform: scale(1);
+}
+
+body.thin #w-artist-box {
+    top: 12px;
+    height: 18px;
+    opacity: 1;
+    text-align: left;
+}
+
+body.thin #w-artist {
+    font-size: 12px;
+}
+
+body.thin #w-bg-dots {
+    top: 15px;
+    opacity: 1;
+    transform: scale(1);
+}
+
+body.thin #w-prog-bg {
+    top: 18px;
+    height: 4px;
+    width: 40px;
+    opacity: 1;
+}
+
+body.thin #w-time {
+    opacity: 0;
+    top: 18px;
+}
+
+body.thin #w-duration {
+    opacity: 0;
+    top: 18px;
+}
+
+body.thin #w-swipe-bar {
+    top: 8px;
+    left: 45px;
+    height: 24px;
+}
+
+.scroll-active {
+    animation: slide-left 8s linear infinite alternate;
+}
+
+@keyframes slide-left {
+    0%,
+    15% {
+        transform: translateX(0);
+    }
+    85%,
+    100% {
+        transform: translateX(calc(120px - 100%));
+    }
+}
+
+.anim-target {
+    transition:
+        opacity 0.35s ease,
+        transform 0.35s ease;
+}
+
+.slide-up {
+    opacity: 0 !important;
+    transform: translateY(-8px) !important;
+}
+
+#w-swipe-bar {
+
+    background: var(--accent-color);
+    transform: translateX(-101%);
+    z-index: 10;
+    pointer-events: none;
+
+    transition: background 0.4s;
+}
+
+
+#w-swipe-bar.swipe-active {
+    animation: swipe-wipe 0.5s linear forwards;
+}
+
+@keyframes swipe-wipe {
+    0% {
+        transform: translateX(-101%);
+    }
+    40% {
+        transform: translateX(0%);
+    }
+    60% {
+        transform: translateX(0%);
+    }
+    100% {
+        transform: translateX(101%);
+    }
+}
