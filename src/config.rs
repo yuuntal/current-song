@@ -3,7 +3,17 @@ use std::fs;
 use std::path::Path;
 use std::sync::{Arc, RwLock};
 
-const CONFIG_FILE: &str = "config.json";
+fn get_config_path() -> std::path::PathBuf {
+    let base_dir = std::env::var("XDG_CONFIG_HOME")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|_| {
+            let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+            std::path::PathBuf::from(home).join(".config")
+        });
+    let config_dir = base_dir.join("currentsong");
+    let _ = std::fs::create_dir_all(&config_dir);
+    config_dir.join("config.json")
+}
 
 #[derive(Clone)]
 pub struct ConfigManager {
@@ -12,8 +22,9 @@ pub struct ConfigManager {
 
 impl ConfigManager {
     pub fn new() -> Self {
-        let config = if Path::new(CONFIG_FILE).exists() {
-            match fs::read_to_string(CONFIG_FILE) {
+        let config_path = get_config_path();
+        let config = if config_path.exists() {
+            match fs::read_to_string(&config_path) {
                 Ok(content) => {
                     serde_json::from_str(&content).unwrap_or_else(|_| OverlayConfig::default())
                 }
@@ -37,7 +48,7 @@ impl ConfigManager {
         *config_guard = new_config.clone();
 
         let json = serde_json::to_string_pretty(&new_config)?;
-        fs::write(CONFIG_FILE, json)?;
+        fs::write(get_config_path(), json)?;
         Ok(())
     }
 }

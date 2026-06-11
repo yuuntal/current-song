@@ -8,14 +8,12 @@ use axum::{
     },
     http::StatusCode,
     response::{IntoResponse, Response},
-    routing::{get, get_service},
+    routing::get,
 };
 use futures::{sink::SinkExt, stream::StreamExt};
-use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use tokio::sync::broadcast;
 use tower_http::cors::CorsLayer;
-use tower_http::services::{ServeDir, ServeFile};
 
 pub struct AppState {
     pub config_manager: ConfigManager,
@@ -23,23 +21,58 @@ pub struct AppState {
     pub tx: broadcast::Sender<SongInfo>,
 }
 
+#[derive(rust_embed::RustEmbed)]
+#[folder = "static/"]
+struct Asset;
+
+async fn serve_asset(path: &str) -> Response {
+    match Asset::get(path) {
+        Some(content) => {
+            let mime = mime_guess::from_path(path).first_or_octet_stream();
+            (
+                [
+                    (axum::http::header::CONTENT_TYPE, mime.as_ref()),
+                    (axum::http::header::CACHE_CONTROL, "public, max-age=31536000"),
+                ],
+                content.data,
+            ).into_response()
+        }
+        None => StatusCode::NOT_FOUND.into_response(),
+    }
+}
+
+async fn serve_overlay() -> Response {
+    serve_asset("overlay.html").await
+}
+
+async fn serve_customize() -> Response {
+    serve_asset("customize.html").await
+}
+
+async fn serve_static_file(
+    axum::extract::Path(path): axum::extract::Path<String>,
+) -> Response {
+    serve_asset(&path).await
+}
+
 pub async fn run_server(state: Arc<AppState>, shutdown_rx: tokio::sync::oneshot::Receiver<()>) {
     let app = Router::new()
         .route("/ws", get(ws_handler))
         .route("/api/config", get(get_config).post(update_config))
-        .route("/", get_service(ServeFile::new("static/overlay.html")))
-        .route(
-            "/customize",
-            get_service(ServeFile::new("static/customize.html")),
-        )
-        .fallback_service(ServeDir::new("static"))
+        .route("/", get(serve_overlay))
+        .route("/customize", get(serve_customize))
+        .route("/*path", get(serve_static_file))
         .layer(CorsLayer::permissive())
         .with_state(state);
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3333));
+    let listener = if let Ok(l) = tokio::net::TcpListener::bind("[::]:3333").await {
+        l
+    } else if let Ok(l) = tokio::net::TcpListener::bind("0.0.0.0:3333").await {
+        l
+    } else {
+        tokio::net::TcpListener::bind("127.0.0.1:3333").await.unwrap()
+    };
 
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    
     axum::serve(listener, app)
         .with_graceful_shutdown(async {
             let _ = shutdown_rx.await;
