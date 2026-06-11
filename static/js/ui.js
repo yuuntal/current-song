@@ -4,6 +4,8 @@ import { extractAccentColor, resetAccentColor } from './color.js';
 const DEFAULT_LAYOUT = 'dynamic';
 const DEFAULT_ALIGNMENT = 'bottom-right';
 const DEFAULT_ANIMATION = 'swipe';
+const DYNAMIC_MORPH_DURATION_MS = 360;
+const DYNAMIC_MORPH_EASING = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 
 let overlayConfig = {
     layout: DEFAULT_LAYOUT,
@@ -19,8 +21,12 @@ let overlayConfig = {
     color_mode: 'auto',
     border_radius_px: 0,
     font_size_px: 14,
+    collapse_delay_secs: 3,
+    text_scroll_direction: 'left',
 };
 let ws;
+let hasRendered = false;
+let activeMorphAnimations = [];
 
 async function loadConfig() {
     try {
@@ -61,8 +67,12 @@ function applyOverlayConfig() {
     const accent = overlayConfig.accent_color || '#4a90e2';
     const radius = overlayConfig.border_radius_px ?? 0;
     const colorMode = overlayConfig.color_mode === 'manual' ? 'manual' : 'auto';
+    const overflowMode = overlayConfig.text_overflow_mode === 'ellipsis' ? 'ellipsis' : 'marquee';
+    const scrollDirection = overlayConfig.text_scroll_direction === 'right' ? 'right' : 'left';
 
     root.dataset.colorMode = colorMode;
+    root.dataset.textOverflowMode = overflowMode;
+    root.dataset.textScrollDirection = scrollDirection;
     root.style.setProperty('--bg-color', bg);
     root.style.setProperty('--text-primary', text);
     if (colorMode === 'manual') {
@@ -89,6 +99,177 @@ function applyOverlayConfig() {
         const bar = progress.querySelector('.prog-bg');
         if (bar) bar.style.display = overlayConfig.show_progress ? '' : 'none';
     }
+}
+
+// function clamp(value, min, max) {
+//     return Math.max(min, Math.min(value, max));
+// }
+
+function currentLayoutIsDynamic() {
+    const wrapper = document.getElementById('widget-wrapper');
+    return !!wrapper && wrapper.classList.contains('layout-dynamic');
+}
+
+function captureDynamicMorph() {
+    const selectors = [
+        '#w-art-box',
+        '.info-box',
+        '#w-title',
+        '#w-artist',
+        '.progress-container',
+        '#w-prog-bg',
+    ];
+    const rects = new Map();
+
+    selectors.forEach((selector) => {
+        const el = document.querySelector(selector);
+        if (!el) return;
+
+        const style = window.getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden') return;
+
+        const rect = el.getBoundingClientRect();
+        rects.set(el, rect);
+    });
+
+    return rects;
+}
+
+function animateDynamicMorph(beforeRects) {
+    if (!beforeRects || beforeRects.size === 0) return;
+
+    activeMorphAnimations.forEach((animation) => animation.cancel());
+    activeMorphAnimations = [];
+
+    requestAnimationFrame(() => {
+        beforeRects.forEach((first, el) => {
+            if (!document.contains(el)) return;
+
+            const last = el.getBoundingClientRect();
+            const dx = first.left - last.left;
+            const dy = first.top - last.top;
+            const scaleX = last.width > 0 ? first.width / last.width : 1;
+            const scaleY = last.height > 0 ? first.height / last.height : 1;
+            const moved = Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5;
+            const resized = Math.abs(scaleX - 1) > 0.02 || Math.abs(scaleY - 1) > 0.02;
+
+            if (!moved && !resized) return;
+
+            const animation = el.animate(
+                [
+                    {
+                        transformOrigin: 'top left',
+                        transform: `translate(${dx}px, ${dy}px) scale(${scaleX}, ${scaleY})`,
+                    },
+                    {
+                        transformOrigin: 'top left',
+                        transform: 'translate(0, 0) scale(1, 1)',
+                    },
+                ],
+                {
+                    duration: DYNAMIC_MORPH_DURATION_MS,
+                    easing: DYNAMIC_MORPH_EASING,
+                    fill: 'both',
+                },
+            );
+
+            animation.finished
+                .catch(() => {})
+                .finally(() => {
+                    animation.cancel();
+                    activeMorphAnimations = activeMorphAnimations.filter((item) => item !== animation);
+                });
+            activeMorphAnimations.push(animation);
+        });
+    });
+}
+
+// function measureTextWidth(el, maxWidth) {
+//     if (!el || window.getComputedStyle(el).display === 'none') return 0;
+//     const previousMaxWidth = el.style.maxWidth;
+//     const previousWidth = el.style.width;
+//     el.style.width = 'auto';
+//     el.style.maxWidth = 'none';
+//     const width = Math.ceil(Math.max(el.scrollWidth, el.getBoundingClientRect().width));
+//     el.style.maxWidth = previousMaxWidth;
+//     el.style.width = previousWidth;
+//     return clamp(width, 0, maxWidth);
+// }
+
+function syncDynamicLayout(layout = overlayConfig.layout || DEFAULT_LAYOUT) {
+    const wrapper = document.getElementById('widget-wrapper');
+    const title   = document.getElementById('w-title');
+    const artist  = document.getElementById('w-artist');
+
+    if (!wrapper) return;
+
+
+    const canvasCtx = (() => {
+        if (!syncDynamicLayout._canvas) {
+            syncDynamicLayout._canvas = document.createElement('canvas');
+        }
+        return syncDynamicLayout._canvas.getContext('2d');
+    })();
+
+    const measureText = (el) => {
+        if (!el || window.getComputedStyle(el).display === 'none') return 0;
+        const cs = window.getComputedStyle(el);
+        canvasCtx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+        return Math.ceil(canvasCtx.measureText(el.textContent || '').width);
+    };
+
+    const titleW  = measureText(title);
+    const artistW = measureText(artist);
+    const hasArtist = artistW > 0 && overlayConfig.show_artist !== false;
+
+    let newWidth;
+    if (state.isExpanded) {
+
+        const contentW = Math.max(titleW, hasArtist ? artistW : 0);
+        newWidth = `${Math.max(104 + contentW + 16, 180)}px`;
+    } else {
+
+        const contentW = titleW + (hasArtist ? 12 + artistW : 0);
+        newWidth = `${Math.max(16 + contentW, 80)}px`;
+    }
+
+    if (wrapper.style.width !== newWidth) {
+        wrapper.style.width = newWidth;
+    }
+
+
+    if (title)  { title.style.removeProperty('max-width');  title.style.removeProperty('width'); }
+    if (artist) { artist.style.removeProperty('max-width'); artist.style.removeProperty('width'); }
+}
+
+function syncTextOverflow() {
+
+    [document.getElementById('w-title'), document.getElementById('w-artist')].forEach((el) => {
+        if (!el) return;
+
+        delete el.dataset.marqueeOriginal;
+        el.classList.remove('text-scroll-active');
+        el.style.removeProperty('--text-scroll-offset');
+        el.style.removeProperty('--text-scroll-duration');
+
+        if (el.children.length > 0 && el.dataset.marqueeOriginal !== undefined) {
+            el.textContent = el.dataset.marqueeOriginal;
+        }
+    });
+}
+
+function collapseDynamicLayout() {
+    if (!currentLayoutIsDynamic() || !state.isExpanded) return;
+
+    const before = captureDynamicMorph();
+    state.isExpanded = false;
+
+    const wrapper = document.getElementById('widget-wrapper');
+    if (wrapper) wrapper.classList.remove('is-expanded');
+
+    syncDynamicLayout('dynamic');
+    syncTextOverflow();
+    animateDynamicMorph(before);
 }
 
 function connect() {
@@ -122,35 +303,45 @@ function normalizeSongInfo(data) {
     return data;
 }
 function updateUI(data) {
+    const wasPlaying = state.isPlaying;
+    const layout = data.layout || DEFAULT_LAYOUT;
+    const alignment = data.alignment || DEFAULT_ALIGNMENT;
+    const animation = data.animation || DEFAULT_ANIMATION;
+    const previousTitle = state.currentTitle;
+    const songJustChanged = previousTitle === undefined || previousTitle !== data.title;
+    const nextExpanded = layout === 'dynamic' ? (songJustChanged ? true : !!state.isExpanded) : false;
+    const shouldCaptureMorph =
+        hasRendered &&
+        currentLayoutIsDynamic() &&
+        layout === 'dynamic' &&
+        (songJustChanged || !!state.isExpanded !== nextExpanded);
+    const beforeMorph = shouldCaptureMorph ? captureDynamicMorph() : null;
+
     applyOverlayConfig();
 
-    const wasPlaying = state.isPlaying;
     state.isPlaying = (data.status === 'PLAYING');
     state.duration  = data.duration;
-    let songJustChanged = false;
-    if (state.currentTitle === undefined) {
-        songJustChanged = true;
-        state.isExpanded = true;
-    } else if (state.currentTitle !== data.title) {
+    state.isExpanded = nextExpanded;
+
+    if (songJustChanged && previousTitle !== undefined) {
         const wrapper = document.getElementById('widget-wrapper');
         if (wrapper) {
             wrapper.classList.remove('song-changed');
             void wrapper.offsetWidth;
             wrapper.classList.add('song-changed');
         }
-        songJustChanged = true;
-        state.isExpanded = true;
     }
     state.currentTitle = data.title;
 
-    if (songJustChanged) {
+    if (layout === 'dynamic' && songJustChanged) {
         clearTimeout(state.dynamicTimer);
-        state.dynamicTimer = setTimeout(() => {
-            state.isExpanded = false;
-            const w = document.getElementById('widget-wrapper');
-            if (w) w.classList.remove('is-expanded');
-        }, 8000);
+        state.dynamicTimer = setTimeout(collapseDynamicLayout, (overlayConfig.collapse_delay_secs ?? 3) * 1000);
+    } else if (layout !== 'dynamic') {
+        clearTimeout(state.dynamicTimer);
+        state.dynamicTimer = null;
+        state.isExpanded = false;
     }
+
     const titleEl = document.getElementById('w-title');
     const artistEl = document.getElementById('w-artist');
     
@@ -159,7 +350,7 @@ function updateUI(data) {
     const wrapper = document.getElementById('widget-wrapper');
     if (wrapper) {
         const isSongChanged = wrapper.classList.contains('song-changed');
-        wrapper.className = `widget-wrapper layout-${data.layout} pos-${data.alignment} anim-${data.animation}`;
+        wrapper.className = `widget-wrapper layout-${layout} pos-${alignment} anim-${animation}`;
         if (state.isPlaying) {
             wrapper.classList.add('is-playing');
         }
@@ -170,7 +361,12 @@ function updateUI(data) {
             wrapper.classList.add('is-expanded');
         }
     }
-    document.body.className = `align-${data.alignment}`;
+    document.body.className = `align-${alignment}`;
+    syncDynamicLayout(layout);
+    syncTextOverflow();
+    animateDynamicMorph(beforeMorph);
+    hasRendered = true;
+
     if (data.position !== state.serverPosition || state.isPlaying !== wasPlaying) {
         state.serverPosition = data.position;
         state.localPosition  = data.position;
@@ -261,5 +457,24 @@ function tick() {
     updateProgressBar(state.localPosition, state.duration);
     requestAnimationFrame(tick);
 }
+
+if ('ResizeObserver' in window) {
+    const resizeObserver = new ResizeObserver(() => {
+        syncDynamicLayout();
+        syncTextOverflow();
+    });
+    setTimeout(() => {
+        const title = document.getElementById('w-title');
+        const artist = document.getElementById('w-artist');
+        if (title) resizeObserver.observe(title);
+        if (artist) resizeObserver.observe(artist);
+    }, 100);
+}
+
+window.addEventListener('resize', () => {
+    syncDynamicLayout();
+    syncTextOverflow();
+});
+
 loadConfig().finally(connect);
 requestAnimationFrame(tick);

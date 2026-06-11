@@ -44,8 +44,8 @@ body.bottom-right {
     overflow: hidden;
     position: relative;
         transition:
-        width 0.4s linear,
-        height 0.4s linear;
+        width 0.15s linear,
+        height 0.15s linear;
     width: 380px;
     height: 320px;
 }
@@ -421,18 +421,21 @@ body.thin #w-swipe-bar {
     height: 24px;
 }
 
-.scroll-active {
-    animation: slide-left 8s linear infinite alternate;
+.scroll-wrap {
+    display: flex;
 }
 
-@keyframes slide-left {
-    0%,
-    15% {
+.scroll-active {
+    animation: marquee-loop var(--marquee-dur, 8s) linear infinite;
+    padding-right: 48px;
+}
+
+@keyframes marquee-loop {
+    0% {
         transform: translateX(0);
     }
-    85%,
     100% {
-        transform: translateX(calc(120px - 100%));
+        transform: translateX(var(--marquee-offset, -50%));
     }
 }
 

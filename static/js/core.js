@@ -9,6 +9,7 @@ export const state = {
     duration: 0,
     lastSyncTime: performance.now(),
     isPlaying: false,
+    isExpanded: false,
     swipeLock: false,
     dynamicTimer: null,
 };

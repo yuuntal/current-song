@@ -48,7 +48,8 @@
     padding: 0;
 }
 .layout-compact .prog-bg {
-    background-color: transparent;     height: 100%;
+    background-color: transparent;
+    height: 100%;
 }
 .layout-compact #w-time,
 .layout-compact #w-duration {
@@ -59,8 +60,8 @@
 .widget-wrapper.layout-thin {
     width: auto;
     min-width: 0;
-    max-width: min(420px, calc(100vw - 40px));
-    height: 36px;
+    max-width: min(520px, calc(100vw - 40px));
+    height: 44px;
     padding: 0 16px;
 }
 .layout-thin #w-art-box {
@@ -78,14 +79,14 @@
     margin: 0;
     flex-shrink: 1;
     min-width: 0;
-    max-width: 220px;
+    max-width: 300px;
 }
 .layout-thin #w-artist {
     font-size: 0.85rem;
     margin: 0;
     flex-shrink: 1;
     min-width: 0;
-    max-width: 160px;
+    max-width: 200px;
 }
 .layout-thin .progress-container {
     position: absolute;
@@ -104,12 +105,16 @@
 
 
 .widget-wrapper.layout-dynamic {
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    --dynamic-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
     overflow: hidden;
+    transition:
+        width 0.3s var(--dynamic-ease),
+        height 0.3s var(--dynamic-ease),
+        padding 0.3s var(--dynamic-ease);
 }
 
 .widget-wrapper.layout-dynamic.is-expanded {
-    width: 340px;
+    width: 420px;
     height: 80px;
     padding: 12px;
     align-items: center;
@@ -119,12 +124,23 @@
     height: 56px;
     opacity: 1;
     transform: scale(1);
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .layout-dynamic #w-art {
     width: 56px;
     height: 56px;
     object-fit: cover;
+}
+.layout-dynamic #w-art-box,
+.layout-dynamic .info-box,
+.layout-dynamic #w-title,
+.layout-dynamic #w-artist,
+.layout-dynamic .progress-container,
+.layout-dynamic .prog-bg {
+    transition:
+        opacity 0.36s ease,
+        transform 0.36s var(--dynamic-ease),
+        color 0.3s ease,
+        box-shadow 0.3s ease;
 }
 .layout-dynamic.is-expanded .info-box { 
     margin: 0 12px; 
@@ -139,11 +155,9 @@
 .layout-dynamic.is-expanded #w-time, .layout-dynamic.is-expanded #w-duration { display: none; }
 
 .widget-wrapper.layout-dynamic:not(.is-expanded) {
-    width: auto;
-    min-width: 0;
-    max-width: min(420px, calc(100vw - 40px));
-    height: 36px;
-    padding: 0 16px;
+    height: 44px;
+    padding: 0 8px;
+    align-items: center;
 }
 .layout-dynamic:not(.is-expanded) #w-art-box {
     width: 0;
@@ -151,28 +165,20 @@
     opacity: 0;
     margin: 0;
     transform: scale(0.5) translateX(-20px);
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .layout-dynamic:not(.is-expanded) .info-box {
     flex-direction: row;
     align-items: center;
     margin: 0;
     gap: 12px;
-    min-width: 0;
 }
 .layout-dynamic:not(.is-expanded) #w-title {
     font-size: 0.95rem;
     margin: 0;
-    flex-shrink: 1;
-    min-width: 0;
-    max-width: 220px;
 }
 .layout-dynamic:not(.is-expanded) #w-artist {
     font-size: 0.85rem;
     margin: 0;
-    flex-shrink: 1;
-    min-width: 0;
-    max-width: 160px;
 }
 .layout-dynamic:not(.is-expanded) .progress-container {
     position: absolute;

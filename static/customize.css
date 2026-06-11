@@ -121,6 +121,14 @@ h1 {
     background: #2c2518;
 }
 
+.segmented.is-disabled {
+    opacity: 0.42;
+}
+
+.segmented button:disabled {
+    cursor: not-allowed;
+}
+
 .split {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

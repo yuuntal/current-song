@@ -69,7 +69,7 @@ function updateUI(data) {
         document.body.className =
           "thin " + (data.alignment || "") + " anim-mode-" + animMode;
         morphLayout();
-      }, 6000);
+      }, 3000);
     } else {
       if (document.body.classList.contains("compact")) activeLayout = "compact";
       else if (document.body.classList.contains("thin")) activeLayout = "thin";
@@ -203,16 +203,10 @@ function morphLayout() {
 
   if (!wrapper || !titleBox || !title) return;
 
-  const textWBoxMax = 140;
+  const textWBoxMax = 260;
 
-  let tWidth = Math.min(title.offsetWidth, textWBoxMax);
-  let aWidth = Math.min(artist.offsetWidth, textWBoxMax);
-
-  if (title.offsetWidth > textWBoxMax) title.classList.add("scroll-active");
-  else title.classList.remove("scroll-active");
-
-  if (artist.offsetWidth > textWBoxMax) artist.classList.add("scroll-active");
-  else artist.classList.remove("scroll-active");
+  let tWidth = Math.min(title.scrollWidth, textWBoxMax);
+  let aWidth = Math.min(artist.scrollWidth, textWBoxMax);
 
   if (document.body.classList.contains("large")) {
     wrapper.style.width = "380px";
@@ -222,10 +216,6 @@ function morphLayout() {
     titleBox.style.left = "20px";
     artistBox.style.left = "20px";
 
-    title.classList.remove("scroll-active");
-    artist.classList.remove("scroll-active");
-    if (title.offsetWidth > 340) title.classList.add("scroll-active");
-    if (artist.offsetWidth > 340) artist.classList.add("scroll-active");
 
     progBg.style.width = "256px";
   } else if (document.body.classList.contains("compact")) {
@@ -245,6 +235,7 @@ function morphLayout() {
     let totalWidth = currentLeft + 15;
     wrapper.style.width = totalWidth + "px";
     wrapper.style.height = "60px";
+
 
     progBg.style.left = "70px";
     progBg.style.width = totalWidth - 70 - 15 + "px";

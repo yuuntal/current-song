@@ -6,8 +6,9 @@ const resetDefaultsButton = document.getElementById('reset-defaults');
 const layoutGrid = document.getElementById('layout-grid');
 const positionGrid = document.getElementById('position-grid');
 const colorModeGrid = document.getElementById('color-mode-grid');
-const animationInput = document.getElementById('animation');
+const animationInput = null;
 const fontSizeInput = document.getElementById('font-size');
+const collapseDelayInput = document.getElementById('collapse-delay');
 const backgroundInput = document.getElementById('background-color');
 const textInput = document.getElementById('text-color');
 const accentInput = document.getElementById('accent-color');
@@ -35,6 +36,7 @@ const DEFAULT_CONFIG = {
     background_color: '#1a1a1e',
     text_color: '#ffffff',
     font_size_px: 14,
+    collapse_delay_secs: 3,
     border_radius_px: 0,
     blur_px: 0,
     custom_css: '',
@@ -70,8 +72,8 @@ function render() {
     setActive(positionGrid, 'align', alignment);
     setActive(colorModeGrid, 'mode', config.color_mode || DEFAULT_CONFIG.color_mode);
 
-    animationInput.value = normalizeAnimation(config.animation || config.transition_animation);
     fontSizeInput.value = config.font_size_px ?? DEFAULT_CONFIG.font_size_px;
+    collapseDelayInput.value = config.collapse_delay_secs ?? DEFAULT_CONFIG.collapse_delay_secs;
     backgroundInput.value = config.background_color || DEFAULT_CONFIG.background_color;
     textInput.value = config.text_color || DEFAULT_CONFIG.text_color;
     accentInput.value = config.accent_color || DEFAULT_CONFIG.accent_color;
@@ -88,10 +90,6 @@ function syncAccentInput() {
     const isManual = colorMode === 'manual';
     accentInput.disabled = !isManual;
     accentField.classList.toggle('is-disabled', !isManual);
-}
-
-function normalizeAnimation(animation) {
-    return animation === 'smooth' || animation === 'swipe' ? animation : DEFAULT_CONFIG.animation;
 }
 
 async function loadConfig() {
@@ -136,20 +134,20 @@ resetDefaultsButton.addEventListener('click', async () => {
 
 function readFormConfig() {
     const alignment = selected(positionGrid, 'align', DEFAULT_CONFIG.alignment);
-    const animation = animationInput.value || DEFAULT_CONFIG.animation;
 
     return {
         ...config,
         layout: selected(layoutGrid, 'layout', DEFAULT_CONFIG.layout),
         alignment,
-        animation,
-        transition_animation: animation,
+        animation: 'swipe',
+        transition_animation: 'swipe',
         position: positionByAlignment[alignment] || DEFAULT_CONFIG.position,
         accent_color: accentInput.value,
         color_mode: selected(colorModeGrid, 'mode', DEFAULT_CONFIG.color_mode),
         background_color: backgroundInput.value,
         text_color: textInput.value,
         font_size_px: Number(fontSizeInput.value) || DEFAULT_CONFIG.font_size_px,
+        collapse_delay_secs: Number(collapseDelayInput.value) || DEFAULT_CONFIG.collapse_delay_secs,
         border_radius_px: Number(radiusInput.value) || 0,
         blur_px: 0,
         show_thumbnail: showThumbnailInput.checked,

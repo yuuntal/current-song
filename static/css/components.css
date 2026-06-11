@@ -44,9 +44,9 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    overflow: hidden;
     margin: 0 var(--spacing);
     flex-grow: 1;
+    min-width: 0;
 }
 
 #w-title {
@@ -54,8 +54,6 @@
     font-size: 1.1rem;
     font-weight: 600;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     color: var(--text-primary);
 }
 
@@ -64,8 +62,6 @@
     font-size: 0.9rem;
     font-weight: 500;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     color: var(--text-secondary);
 }
 
@@ -102,4 +98,3 @@
 }
 #w-time { text-align: right; }
 #w-duration { text-align: left; }
-

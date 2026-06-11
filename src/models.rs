@@ -44,6 +44,8 @@ pub struct OverlayConfig {
     pub animation: String,
     #[serde(default = "default_color_mode")]
     pub color_mode: String,
+    #[serde(default = "default_collapse_delay")]
+    pub collapse_delay_secs: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -77,6 +79,7 @@ impl Default for OverlayConfig {
             alignment: default_alignment(),
             animation: default_animation(),
             color_mode: default_color_mode(),
+            collapse_delay_secs: default_collapse_delay(),
         }
     }
 }
@@ -96,3 +99,8 @@ fn default_animation() -> String {
 fn default_color_mode() -> String {
     "auto".to_string()
 }
+
+fn default_collapse_delay() -> f64 {
+    3.0
+}
+
