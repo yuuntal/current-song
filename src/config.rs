@@ -1,6 +1,5 @@
 use crate::models::OverlayConfig;
 use std::fs;
-use std::path::Path;
 use std::sync::{Arc, RwLock};
 
 fn get_config_path() -> std::path::PathBuf {

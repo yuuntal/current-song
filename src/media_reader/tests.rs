@@ -119,37 +119,3 @@ mod linux_tests {
         }
     }
 }
-
-
-// WINDOWS
-
-#[cfg(target_os = "windows")]
-mod windows_tests {
-    use super::super::windows::WindowsMediaReader;
-    use super::super::MediaReader;
-
-    #[test]
-    fn windows_reader_can_be_constructed() {
-        let reader = WindowsMediaReader::new();
-        let _ = reader;
-    }
-
-    #[test]
-    fn windows_reader_poll_does_not_panic() {
-        let result = std::panic::catch_unwind(|| {
-            let reader = WindowsMediaReader::new();
-            let _ = reader.get_current_song();
-        });
-
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn windows_reader_multiple_polls_are_stable() {
-        let reader = WindowsMediaReader::new();
-
-        for _ in 0..10 {
-            let _ = reader.get_current_song();
-        }
-    }
-}

@@ -31,7 +31,6 @@ pub fn spawn_tray() -> mpsc::Receiver<TrayCommand> {
     cmd_rx
 }
 
-#[cfg(target_os = "linux")]
 fn run_tray_loop(cmd_tx: mpsc::Sender<TrayCommand>) {
     gtk::init().expect("Failed to init GTK");
 
@@ -44,7 +43,6 @@ fn run_tray_loop(cmd_tx: mpsc::Sender<TrayCommand>) {
     gtk::main();
 }
 
-#[cfg(target_os = "linux")]
 fn glib_recv_menu_events(cmd_tx: mpsc::Sender<TrayCommand>) {
     use gtk::glib;
 
@@ -54,19 +52,6 @@ fn glib_recv_menu_events(cmd_tx: mpsc::Sender<TrayCommand>) {
         }
         glib::ControlFlow::Continue
     });
-}
-
-#[cfg(target_os = "windows")]
-fn run_tray_loop(cmd_tx: mpsc::Sender<TrayCommand>) {
-    let _tray = build_tray(&cmd_tx);
-
-    // poll menu event
-    loop {
-        if let Ok(event) = MenuEvent::receiver().try_recv() {
-            handle_menu_event(&event.id().0, &cmd_tx);
-        }
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    }
 }
 
 // menu item id
