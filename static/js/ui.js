@@ -308,6 +308,7 @@ function updateUI(data) {
     const alignment = data.alignment || DEFAULT_ALIGNMENT;
     const animation = data.animation || DEFAULT_ANIMATION;
     const previousTitle = state.currentTitle;
+    const previousArtist = state.currentArtist;
     const songJustChanged = previousTitle === undefined || previousTitle !== data.title;
     const nextExpanded = layout === 'dynamic' ? (songJustChanged ? true : !!state.isExpanded) : false;
     const shouldCaptureMorph =
@@ -323,15 +324,22 @@ function updateUI(data) {
     state.duration  = data.duration;
     state.isExpanded = nextExpanded;
 
+    const baseDelay = overlayConfig.collapse_delay_secs || 1.5;
+    const typewriterDuration = Math.max(0.4, Math.min(1.2, baseDelay * 0.35));
+
     if (songJustChanged && previousTitle !== undefined) {
         const wrapper = document.getElementById('widget-wrapper');
         if (wrapper) {
             wrapper.classList.remove('song-changed');
             void wrapper.offsetWidth;
             wrapper.classList.add('song-changed');
+            setTimeout(() => {
+                wrapper.classList.remove('song-changed');
+            }, typewriterDuration * 1000);
         }
     }
     state.currentTitle = data.title;
+    state.currentArtist = data.artist;
 
     if (layout === 'dynamic' && songJustChanged) {
         clearTimeout(state.dynamicTimer);
@@ -345,8 +353,39 @@ function updateUI(data) {
     const titleEl = document.getElementById('w-title');
     const artistEl = document.getElementById('w-artist');
     
-    if (titleEl) titleEl.innerText = data.title;
-    if (artistEl) artistEl.innerText = data.artist;
+    if (titleEl) {
+        if (songJustChanged && previousTitle !== undefined) {
+            transitionTextTypewriter(titleEl, data.title, typewriterDuration);
+        } else {
+            // If we are already typewriting this exact title, do not interrupt it!
+            if (titleEl.typewriterInterval && titleEl.typewriterTarget === data.title) {
+                // Let the typewriter continue
+            } else {
+                if (titleEl.typewriterInterval) {
+                    clearInterval(titleEl.typewriterInterval);
+                    titleEl.typewriterInterval = null;
+                }
+                titleEl.innerText = data.title;
+            }
+        }
+    }
+    if (artistEl) {
+        const nextArtist = data.artist || '';
+        if (songJustChanged && previousArtist !== undefined) {
+            transitionTextTypewriter(artistEl, nextArtist, typewriterDuration);
+        } else {
+            // If we are already typewriting this exact artist, do not interrupt it!
+            if (artistEl.typewriterInterval && artistEl.typewriterTarget === nextArtist) {
+                // Let the typewriter continue
+            } else {
+                if (artistEl.typewriterInterval) {
+                    clearInterval(artistEl.typewriterInterval);
+                    artistEl.typewriterInterval = null;
+                }
+                artistEl.innerText = nextArtist;
+            }
+        }
+    }
     const wrapper = document.getElementById('widget-wrapper');
     if (wrapper) {
         const isSongChanged = wrapper.classList.contains('song-changed');
@@ -478,3 +517,73 @@ window.addEventListener('resize', () => {
 
 loadConfig().finally(connect);
 requestAnimationFrame(tick);
+
+function transitionTextTypewriter(element, targetText, durationSecs) {
+    if (!element) return;
+    if (element.typewriterInterval) {
+        clearInterval(element.typewriterInterval);
+    }
+
+    const startText = (element.innerText || '').trim();
+    const target = (targetText || '').trim();
+    if (startText === target) {
+        element.typewriterTarget = null;
+        return;
+    }
+
+    element.typewriterTarget = target;
+
+    // Find the longest common prefix
+    let commonLen = 0;
+    const minLen = Math.min(startText.length, target.length);
+    while (commonLen < minLen && startText.charAt(commonLen) === target.charAt(commonLen)) {
+        commonLen++;
+    }
+    const commonPrefix = startText.substring(0, commonLen);
+
+    // Only backspace the characters that are different
+    const deleteCount = startText.length - commonLen;
+    // Only type the new characters starting after the common prefix
+    const insertCount = target.length - commonLen;
+    const totalSteps = deleteCount + insertCount;
+
+    console.log(`[Typewriter] Start: "${startText}" -> Target: "${target}"`);
+    console.log(`[Typewriter] Common prefix: "${commonPrefix}" | Deletions: ${deleteCount} | Insertions: ${insertCount}`);
+
+    if (totalSteps === 0) {
+        element.innerText = target;
+        element.typewriterTarget = null;
+        syncDynamicLayout();
+        syncTextOverflow();
+        return;
+    }
+
+    const durationMs = (durationSecs || 0.55) * 1000;
+    const speedMs = durationMs / totalSteps;
+    let step = 0;
+
+    element.typewriterInterval = setInterval(() => {
+        if (step < deleteCount) {
+            // Delete phase: delete down to common prefix
+            const nextText = startText.substring(0, startText.length - step - 1);
+            element.innerText = nextText;
+            console.log(`[Typewriter] Deleting: "${nextText}"`);
+        } else {
+            // Typing phase: type new characters starting from common prefix
+            const insertStep = step - deleteCount;
+            const nextText = commonPrefix + target.substring(commonLen, commonLen + insertStep + 1);
+            element.innerText = nextText;
+            console.log(`[Typewriter] Typing: "${nextText}"`);
+        }
+        step++;
+        syncDynamicLayout();
+
+        if (step >= totalSteps) {
+            clearInterval(element.typewriterInterval);
+            element.typewriterInterval = null;
+            element.typewriterTarget = null;
+            console.log(`[Typewriter] Completed.`);
+            syncTextOverflow();
+        }
+    }, speedMs);
+}
