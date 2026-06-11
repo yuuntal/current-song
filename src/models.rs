@@ -20,19 +20,30 @@ pub struct OverlayConfig {
     pub show_progress: bool,
     pub show_time: bool,
 
-    // 0 for primary
-    // 1 for secondary
     pub monitor_index: usize,
+
     pub position: OverlayPosition,
+
     pub accent_color: String,
     pub background_color: String,
     pub text_color: String,
     pub font_size_px: u32,
     pub border_radius_px: u32,
+
     pub blur_px: u32,
+
     pub custom_css: String,
 
     pub transition_animation: String,
+
+    #[serde(default = "default_layout")]
+    pub layout: String,
+    #[serde(default = "default_alignment")]
+    pub alignment: String,
+    #[serde(default = "default_animation")]
+    pub animation: String,
+    #[serde(default = "default_color_mode")]
+    pub color_mode: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -62,6 +73,26 @@ impl Default for OverlayConfig {
             blur_px: 18,
             custom_css: String::new(),
             transition_animation: "slide_up".to_string(),
+            layout: default_layout(),
+            alignment: default_alignment(),
+            animation: default_animation(),
+            color_mode: default_color_mode(),
         }
     }
+}
+
+fn default_layout() -> String {
+    "dynamic".to_string()
+}
+
+fn default_alignment() -> String {
+    "bottom-right".to_string()
+}
+
+fn default_animation() -> String {
+    "swipe".to_string()
+}
+
+fn default_color_mode() -> String {
+    "auto".to_string()
 }
