@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -6,132 +6,114 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Overlay Settings</title>
     <link rel="stylesheet" href="customize.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 
 <body>
-    <div class="layout">
-        <div class="sidebar">
-            <h1>Settings</h1>
+    <main class="shell">
+        <section class="panel">
+            <header class="panel-header">
+                <div>
+                    <h1>Overlay</h1>
+                </div>
+                <a href="/" target="_blank">Open</a>
+            </header>
 
             <form id="config-form">
-
-                <div class="group">
-                    <h2>Theme Preset</h2>
-                    <div id="preset-grid" class="preset-grid"></div>
+                <div class="section">
+                    <h2>Layout</h2>
+                    <div class="segmented" id="layout-grid">
+                        <button type="button" data-layout="dynamic">Dynamic</button>
+                        <button type="button" data-layout="large">Large</button>
+                        <button type="button" data-layout="compact">Compact</button>
+                        <button type="button" data-layout="thin">Thin</button>
+                    </div>
                 </div>
 
-                <div class="group">
-                    <h2>Colors</h2>
+                <div class="section">
+                    <h2>Position</h2>
+                    <div class="position-grid" id="position-grid">
+                        <button type="button" data-align="top-left">Top left</button>
+                        <button type="button" data-align="top-right">Top right</button>
+                        <button type="button" data-align="bottom-left">Bottom left</button>
+                        <button type="button" data-align="bottom-right">Bottom right</button>
+                    </div>
+                </div>
+
+                <div class="section split">
                     <label>
-                        <span>Accent</span>
-                        <input type="color" id="accent-color" name="accent_color">
+                        <span>Animation</span>
+                        <select id="animation">
+                            <option value="swipe">Swipe</option>
+                            <option value="smooth">Smooth</option>
+                        </select>
                     </label>
                     <label>
+                        <span>Font size</span>
+                        <input type="number" id="font-size" min="10" max="24" step="1">
+                    </label>
+                </div>
+
+                <div class="section">
+                    <h2>Colors</h2>
+                    <div class="segmented two-up" id="color-mode-grid">
+                        <button type="button" data-mode="auto">Color Thief</button>
+                        <button type="button" data-mode="manual">Manual</button>
+                    </div>
+                    <div class="color-row">
+                    <label>
                         <span>Background</span>
-                        <input type="color" id="background-color" name="background_color">
+                        <input type="color" id="background-color">
                     </label>
                     <label>
                         <span>Text</span>
-                        <input type="color" id="text-color" name="text_color">
+                        <input type="color" id="text-color">
                     </label>
+                    <label id="accent-field">
+                        <span>Accent</span>
+                        <input type="color" id="accent-color">
+                    </label>
+                    </div>
                 </div>
 
-                <div class="group">
-                    <h2>Style</h2>
+                <div class="section split">
                     <label>
-                        <span>Font Size</span>
-                        <div class="range-wrap">
-                            <input type="range" id="font-size" name="font_size_px" min="10" max="24" value="14">
-                            <span id="font-size-label" class="range-value">14px</span>
-                        </div>
+                        <span>Radius</span>
+                        <input type="number" id="border-radius" min="0" max="24" step="1">
                     </label>
                     <label>
-                        <span>Border Radius</span>
-                        <div class="range-wrap">
-                            <input type="range" id="border-radius" name="border_radius_px" min="0" max="30" value="14">
-                            <span id="border-radius-label" class="range-value">14px</span>
-                        </div>
+                        <span>Art</span>
+                        <input type="checkbox" id="show-thumbnail">
                     </label>
                     <label>
-                        <span>Blur</span>
-                        <div class="range-wrap">
-                            <input type="range" id="blur" name="blur_px" min="0" max="40" value="18">
-                            <span id="blur-label" class="range-value">18px</span>
-                        </div>
-                    </label>
-                </div>
-
-                <div class="group">
-                    <h2>Visibility</h2>
-                    <label class="toggle-row">
-                        <span>Album Art</span>
-                        <input type="checkbox" id="show-thumbnail" class="toggle">
-                    </label>
-                    <label class="toggle-row">
                         <span>Artist</span>
-                        <input type="checkbox" id="show-artist" class="toggle">
+                        <input type="checkbox" id="show-artist">
                     </label>
-                    <label class="toggle-row">
-                        <span>Progress Bar</span>
-                        <input type="checkbox" id="show-progress" class="toggle">
+                    <label>
+                        <span>Progress</span>
+                        <input type="checkbox" id="show-progress">
                     </label>
-                    <label class="toggle-row">
+                    <label>
                         <span>Time</span>
-                        <input type="checkbox" id="show-time" class="toggle">
+                        <input type="checkbox" id="show-time">
                     </label>
                 </div>
 
-                <div class="group">
-                    <h2>Position</h2>
-                    <div class="position-grid" id="position-grid">
-                        <button type="button" data-pos="TopLeft" class="pos-btn">↖</button>
-                        <button type="button" data-pos="TopRight" class="pos-btn">↗</button>
-                        <button type="button" data-pos="BottomLeft" class="pos-btn">↙</button>
-                        <button type="button" data-pos="BottomRight" class="pos-btn active">↘</button>
-                    </div>
-                </div>
-
-                <div class="group">
-                    <h2>Transition Animation</h2>
-                    <div class="anim-grid" id="anim-grid">
-                        <button type="button" data-anim="none" class="anim-btn">None</button>
-                        <button type="button" data-anim="fade" class="anim-btn">Fade</button>
-                        <button type="button" data-anim="slide_up" class="anim-btn active">Slide Up</button>
-                        <button type="button" data-anim="slide_left" class="anim-btn">Slide Left</button>
-                        <button type="button" data-anim="flip" class="anim-btn">Flip</button>
-                        <button type="button" data-anim="bounce" class="anim-btn">Bounce</button>
-                    </div>
-                </div>
-
-                <div class="group">
-                    <h2>Custom CSS</h2>
-                    <textarea id="custom-css" rows="6" spellcheck="false"
-                        placeholder="#overlay-container { border: 2px solid red; }"></textarea>
-                    <div class="css-actions">
-                        <label class="file-import-btn">
-                            Import .css
-                            <input type="file" id="import-css" accept=".css" hidden>
-                        </label>
-                        <button type="button" id="clear-css" class="clear-btn">Clear</button>
-                    </div>
-                </div>
-
-                <button type="submit" class="save-btn">Save Changes</button>
-                <div id="status"></div>
+                <footer class="actions">
+                    <button type="submit">Save</button>
+                    <button type="button" id="reset-defaults">Reset</button>
+                    <span id="status" aria-live="polite"></span>
+                </footer>
             </form>
-        </div>
+        </section>
 
-        <div class="preview-panel">
-            <div class="preview-header">
-                <span>Preview</span>
-                <a href="/" target="_blank" class="open-link">Open overlay</a>
-            </div>
-            <div class="preview-frame-wrap">
-                <iframe id="preview-frame" src="/overlay.html"></iframe>
-            </div>
-        </div>
-    </div>
+        <section class="preview">
+            <iframe id="preview-frame" src="/overlay.html"></iframe>
+        </section>
+    </main>
+
     <script src="customize.js"></script>
 </body>
 
