@@ -20,7 +20,7 @@ fn create_icon() -> Icon {
     Icon::from_rgba(img.into_raw(), width, height).expect("Failed to create tray icon")
 }
 
-// spawn tra
+// spawn tray
 pub fn spawn_tray() -> mpsc::Receiver<TrayCommand> {
     let (cmd_tx, cmd_rx) = mpsc::channel();
 
