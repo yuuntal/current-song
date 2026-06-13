@@ -224,11 +224,9 @@ function syncDynamicLayout(layout = overlayConfig.layout || DEFAULT_LAYOUT) {
 
     let newWidth;
     if (state.isExpanded) {
-
         const contentW = Math.max(titleW, hasArtist ? artistW : 0);
         newWidth = `${Math.max(104 + contentW + 16, 180)}px`;
     } else {
-
         const contentW = titleW + (hasArtist ? 12 + artistW : 0);
         newWidth = `${Math.max(16 + contentW, 80)}px`;
     }
@@ -327,15 +325,22 @@ function updateUI(data) {
     const baseDelay = overlayConfig.collapse_delay_secs || 1.5;
     const typewriterDuration = Math.max(0.4, Math.min(1.2, baseDelay * 0.35));
 
-    if (songJustChanged && previousTitle !== undefined) {
+    const triggerTransition = songJustChanged && (previousTitle !== undefined || window.parent !== window);
+
+    if (triggerTransition) {
         const wrapper = document.getElementById('widget-wrapper');
         if (wrapper) {
             wrapper.classList.remove('song-changed');
             void wrapper.offsetWidth;
             wrapper.classList.add('song-changed');
+
+            triggerSmearAnimation('title', 0, 520, 28, 12, 30);
+            triggerSmearAnimation('artist', 50, 520, 20, 8, 20);
+
+            const removeDelay = Math.max(typewriterDuration * 1000, 600);
             setTimeout(() => {
                 wrapper.classList.remove('song-changed');
-            }, typewriterDuration * 1000);
+            }, removeDelay);
         }
     }
     state.currentTitle = data.title;
@@ -354,7 +359,7 @@ function updateUI(data) {
     const artistEl = document.getElementById('w-artist');
     
     if (titleEl) {
-        if (songJustChanged && previousTitle !== undefined) {
+        if (triggerTransition) {
             transitionTextTypewriter(titleEl, data.title, typewriterDuration);
         } else {
             // If we are already typewriting this exact title, do not interrupt it!
@@ -371,7 +376,7 @@ function updateUI(data) {
     }
     if (artistEl) {
         const nextArtist = data.artist || '';
-        if (songJustChanged && previousArtist !== undefined) {
+        if (songJustChanged && (previousArtist !== undefined || window.parent !== window)) {
             transitionTextTypewriter(artistEl, nextArtist, typewriterDuration);
         } else {
             // If we are already typewriting this exact artist, do not interrupt it!
@@ -533,7 +538,6 @@ function transitionTextTypewriter(element, targetText, durationSecs) {
 
     element.typewriterTarget = target;
 
-    // Find the longest common prefix
     let commonLen = 0;
     const minLen = Math.min(startText.length, target.length);
     while (commonLen < minLen && startText.charAt(commonLen) === target.charAt(commonLen)) {
@@ -541,9 +545,9 @@ function transitionTextTypewriter(element, targetText, durationSecs) {
     }
     const commonPrefix = startText.substring(0, commonLen);
 
-    // Only backspace the characters that are different
+
     const deleteCount = startText.length - commonLen;
-    // Only type the new characters starting after the common prefix
+
     const insertCount = target.length - commonLen;
     const totalSteps = deleteCount + insertCount;
 
@@ -564,12 +568,12 @@ function transitionTextTypewriter(element, targetText, durationSecs) {
 
     element.typewriterInterval = setInterval(() => {
         if (step < deleteCount) {
-            // Delete phase: delete down to common prefix
+            // del
             const nextText = startText.substring(0, startText.length - step - 1);
             element.innerText = nextText;
             console.log(`[Typewriter] Deleting: "${nextText}"`);
         } else {
-            // Typing phase: type new characters starting from common prefix
+            // type
             const insertStep = step - deleteCount;
             const nextText = commonPrefix + target.substring(commonLen, commonLen + insertStep + 1);
             element.innerText = nextText;
@@ -587,3 +591,71 @@ function transitionTextTypewriter(element, targetText, durationSecs) {
         }
     }, speedMs);
 }
+
+const activeSmearAnimations = {
+    title: null,
+    artist: null,
+};
+
+function triggerSmearAnimation(prefix, delayMs, durationMs, maxBlur, maxOffset, maxWarp) {
+    if (activeSmearAnimations[prefix]) {
+        cancelAnimationFrame(activeSmearAnimations[prefix]);
+        activeSmearAnimations[prefix] = null;
+    }
+
+    const blurElem = document.getElementById(`${prefix}-blur`);
+    const offsetRed = document.getElementById(`${prefix}-offset-red`);
+    const offsetBlue = document.getElementById(`${prefix}-offset-blue`);
+    const displaceElem = document.getElementById(`${prefix}-displace`);
+
+    if (!blurElem || !offsetRed || !offsetBlue || !displaceElem) return;
+
+    blurElem.setAttribute('stdDeviation', '0 0');
+    offsetRed.setAttribute('dx', '0');
+    offsetBlue.setAttribute('dx', '0');
+    displaceElem.setAttribute('scale', '0');
+
+    let startTime = null;
+
+    function step(timestamp) {
+        if (!startTime) {
+            startTime = timestamp;
+        }
+
+        const elapsed = timestamp - startTime;
+
+        if (elapsed < delayMs) {
+            activeSmearAnimations[prefix] = requestAnimationFrame(step);
+            return;
+        }
+
+        const animElapsed = elapsed - delayMs;
+        const progress = Math.min(animElapsed / durationMs, 1);
+
+        const ease = 1 - Math.pow(1 - progress, 4);
+
+        const currentBlur = maxBlur * (1 - ease);
+        const currentOffset = maxOffset * (1 - ease);
+        const currentWarp = maxWarp * (1 - ease);
+
+        blurElem.setAttribute('stdDeviation', `${currentBlur} 0`);
+        offsetRed.setAttribute('dx', `${-currentOffset}`);
+        offsetBlue.setAttribute('dx', `${currentOffset}`);
+        displaceElem.setAttribute('scale', `${currentWarp}`);
+
+        if (progress < 1) {
+            activeSmearAnimations[prefix] = requestAnimationFrame(step);
+        } else {
+            blurElem.setAttribute('stdDeviation', '0 0');
+            offsetRed.setAttribute('dx', '0');
+            offsetBlue.setAttribute('dx', '0');
+            displaceElem.setAttribute('scale', '0');
+            activeSmearAnimations[prefix] = null;
+        }
+    }
+
+    activeSmearAnimations[prefix] = requestAnimationFrame(step);
+}
+
+
+

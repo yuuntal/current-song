@@ -86,12 +86,14 @@
     transform-origin: left center;
     transition: none !important;
     animation: titleSmearIn 0.52s cubic-bezier(0.08, 0.82, 0.17, 1) both;
+    filter: url(#title-smear-filter);
 }
 
 .song-changed #w-artist {
     transform-origin: left center;
     transition: none !important;
     animation: artistSmearIn 0.52s cubic-bezier(0.08, 0.82, 0.17, 1) 0.05s both;
+    filter: url(#artist-smear-filter);
 }
 
 .song-changed.widget-wrapper {
