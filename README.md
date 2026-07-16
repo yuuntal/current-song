@@ -45,3 +45,16 @@ you must launch OBS with `--enable-media-stream` flag so browser source can hear
 - in OBS, double-click browser source and make sure `Control audio via OBS` is unchecked.
 - open volume control (`pavucontrol`), go to `Recording` tab.
 - find OBS/Chromium recording and select `Monitor of [your output device]`.
+
+
+# faq
+
+### why is the visualizer flat?
+make sure you started OBS with `--enable-media-stream` and routed the desktop monitor source to the browser inside your volume control settings. it only works with real audio.
+
+### how to use it without browser source in OBS?
+open it in app mode (so it has no window frame) and capture the window in OBS:
+`google-chrome --app=http://localhost:3333 --window-size=450,150`
+
+### how does the accent color work?
+by default it uses color thief to extract colors from your song album art automatically. you can change it to manual colors in `/customize`.
