@@ -32,20 +32,16 @@ then
 cargo build --release
 ```
 
-# Audio Visualizer Setup
+# visualizer (optional)
+real-time audio visualizer that react to your music, but OBS block this by default. to make it work:
 
-The overlay includes a real-time audio visualizer that captures loopback system audio. Because OBS browser sources run in a sandboxed environment, some configuration is required:
+## 1. enable media stream inside OBS
+you must launch OBS with `--enable-media-stream` flag so browser source can hear your sound:
+- flatpak (linux): `flatpak run com.obsproject.Studio --enable-media-stream`
+- native (linux): `obs --enable-media-stream`
+- windows: right click OBS shortcut -> properties -> add `--enable-media-stream` to the end of Target field
 
-### 1. Enable Browser Source Audio Capture
-Launch OBS Studio with the `--enable-media-stream` flag to grant the browser source permission to capture audio:
-- **Flatpak (Linux)**: `flatpak run com.obsproject.Studio --enable-media-stream`
-- **Native (Linux)**: `obs --enable-media-stream`
-- **Windows**: Right-click your OBS shortcut, select **Properties**, and append `--enable-media-stream` to the **Target** field.
-
-### 2. Route System Audio (Linux/PulseAudio)
-1. Double-click the browser source pointing to your overlay in OBS and verify **Control audio via OBS** is **unchecked**.
-2. Open your system's volume control manager (e.g. `pavucontrol`).
-3. Under the **Recording** tab, locate the OBS/Chromium recording stream.
-4. Set its input device to the **Monitor** of your active output device (e.g., *Monitor of Built-in Audio Analog Stereo*).
-
-
+## 2. route your desktop audio to the browser (linux)
+- in OBS, double-click browser source and make sure `Control audio via OBS` is unchecked.
+- open volume control (`pavucontrol`), go to `Recording` tab.
+- find OBS/Chromium recording and select `Monitor of [your output device]`.
