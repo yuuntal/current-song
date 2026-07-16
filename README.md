@@ -34,16 +34,18 @@ cargo build --release
 
 # Audio Visualizer Setup
 
-The overlay features a real-time loopback audio visualizer. Since OBS browser sources run in a sandbox, follow these steps to route system audio:
+The overlay includes a real-time audio visualizer that captures loopback system audio. Because OBS browser sources run in a sandboxed environment, some configuration is required:
 
-### 1. Enable OBS Media Streams
-Launch OBS Studio with the `--enable-media-stream` flag to allow browser sources to capture loopback devices.
-- **Flatpak OBS**: Run `flatpak run com.obsproject.Studio --enable-media-stream` (or use the configured desktop launcher which now passes this flag automatically).
-- **Native OBS**: Run `obs --enable-media-stream`.
+### 1. Enable Browser Source Audio Capture
+Launch OBS Studio with the `--enable-media-stream` flag to grant the browser source permission to capture audio:
+- **Flatpak (Linux)**: `flatpak run com.obsproject.Studio --enable-media-stream`
+- **Native (Linux)**: `obs --enable-media-stream`
+- **Windows**: Right-click your OBS shortcut, select **Properties**, and append `--enable-media-stream` to the **Target** field.
 
-### 2. Route Desktop Audio
-1. In OBS, double-click the browser source pointing to your overlay.
-2. Ensure **Control audio via OBS** is **unchecked**.
-3. Open `pavucontrol` (Volume Control) -> **Recording** tab.
-4. Locate the OBS / Chromium recording stream and select **Monitor of [your audio output]** (e.g. Headphones Monitor).
+### 2. Route System Audio (Linux/PulseAudio)
+1. Double-click the browser source pointing to your overlay in OBS and verify **Control audio via OBS** is **unchecked**.
+2. Open your system's volume control manager (e.g. `pavucontrol`).
+3. Under the **Recording** tab, locate the OBS/Chromium recording stream.
+4. Set its input device to the **Monitor** of your active output device (e.g., *Monitor of Built-in Audio Analog Stereo*).
+
 
