@@ -58,3 +58,6 @@ open it in app mode (so it has no window frame) and capture the window in OBS:
 
 ### how does the accent color work?
 by default it uses color thief to extract colors from your song album art automatically. you can change it to manual colors in `/customize`.
+
+### full windows support?
+soon(tm)
