@@ -97,3 +97,22 @@
 .layout-dynamic:not(.is-expanded) #w-duration {
     display: none;
 }
+
+.layout-dynamic:not(.is-expanded) #w-art {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: dynamic-art-pan 60s linear infinite;
+}
+
+@keyframes dynamic-art-pan {
+    0% {
+        object-position: center 0%;
+    }
+    50% {
+        object-position: center 100%;
+    }
+    100% {
+        object-position: center 0%;
+    }
+}
