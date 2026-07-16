@@ -95,10 +95,9 @@ impl MediaReader for LinuxMediaReader {
             } else {
                 // UPDATE DURATION IF CHANGED OR UNSET
                 let current_len = metadata.length().map(|d| d.as_secs()).unwrap_or(0);
-                if let Some(ref mut c) = *cached {
-                    if c.length_secs != current_len && current_len > 0 {
-                        c.length_secs = current_len;
-                    }
+                if let Some(ref mut c) = *cached && c.length_secs != current_len && current_len > 0
+                {
+                    c.length_secs = current_len;
                 }
 
                 // CHECK IF ARTWORK CHANGED
