@@ -3,7 +3,6 @@ const statusEl = document.getElementById('status');
 const previewFrame = document.getElementById('preview-frame');
 const resetDefaultsButton = document.getElementById('reset-defaults');
 
-const layoutGrid = document.getElementById('layout-grid');
 const positionGrid = document.getElementById('position-grid');
 const colorModeGrid = document.getElementById('color-mode-grid');
 const animationInput = null;
@@ -68,7 +67,6 @@ function selected(container, attr, fallback) {
 function render() {
     const alignment = config.alignment || alignmentByPosition[config.position] || DEFAULT_CONFIG.alignment;
 
-    setActive(layoutGrid, 'layout', config.layout || DEFAULT_CONFIG.layout);
     setActive(positionGrid, 'align', alignment);
     setActive(colorModeGrid, 'mode', config.color_mode || DEFAULT_CONFIG.color_mode);
 
@@ -103,11 +101,6 @@ async function loadConfig() {
     }
 }
 
-layoutGrid.addEventListener('click', (event) => {
-    const button = event.target.closest('button[data-layout]');
-    if (!button) return;
-    setActive(layoutGrid, 'layout', button.dataset.layout);
-});
 
 positionGrid.addEventListener('click', (event) => {
     const button = event.target.closest('button[data-align]');
@@ -137,7 +130,7 @@ function readFormConfig() {
 
     return {
         ...config,
-        layout: selected(layoutGrid, 'layout', DEFAULT_CONFIG.layout),
+        layout: 'dynamic',
         alignment,
         animation: 'swipe',
         transition_animation: 'swipe',
