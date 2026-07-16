@@ -433,8 +433,12 @@ function updateUI(data) {
         state.currentTrackId = data.track_id;
         const img = document.getElementById('w-art');
         const artBox = document.getElementById('w-art-box');
-        artBox.classList.add('loading');
-        img.style.display = 'none';
+      artBox.classList.add('loading');
+      
+        if (!img.getAttribute('src')) {
+            img.style.display = 'none';
+        }
+      
         img.onload = () => {
             if (state.currentTrackId !== data.track_id) return;
             artBox.classList.remove('loading');
@@ -461,8 +465,12 @@ function updateUI(data) {
         
         const loadImg = () => {
             if (state.currentTrackId !== data.track_id) return;
-            artBox.classList.add('loading');
-            img.style.display = 'none';
+          artBox.classList.add('loading');
+          
+            if (!img.getAttribute('src')) {
+                img.style.display = 'none';
+            }
+          
             img.src = `http://localhost:8764/thumbnail?id=${encodeURIComponent(data.track_id)}&retry=${retryCount}&t=${Date.now()}`;
         };
         
