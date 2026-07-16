@@ -1,5 +1,6 @@
 import { state, WS_URL, formatTime, updateProgressBar } from './core.js';
 import { extractAccentColor, resetAccentColor } from './color.js';
+import { initVisualizer, suspendAudio, resumeAudio } from './visualizer.js';
 
 const DEFAULT_LAYOUT = 'dynamic';
 const DEFAULT_ALIGNMENT = 'bottom-right';
@@ -318,7 +319,11 @@ function updateUI(data) {
 
     applyOverlayConfig();
 
+    const prevIsPlaying = state.isPlaying;
     state.isPlaying = (data.status === 'PLAYING');
+    if (state.isPlaying !== prevIsPlaying) {
+        state.isPlaying ? resumeAudio() : suspendAudio();
+    }
     state.duration  = data.duration;
     state.isExpanded = nextExpanded;
 
@@ -409,6 +414,11 @@ function updateUI(data) {
     syncDynamicLayout(layout);
     syncTextOverflow();
     animateDynamicMorph(beforeMorph);
+
+    // Initialize visualizer canvas on first render
+    if (!hasRendered) {
+        initVisualizer();
+    }
     hasRendered = true;
 
     if (data.position !== state.serverPosition || state.isPlaying !== wasPlaying) {

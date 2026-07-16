@@ -180,3 +180,20 @@ async function saveConfig(nextConfig, successMessage) {
 }
 
 loadConfig();
+
+const clearReloadButton = document.getElementById('clear-reload');
+if (clearReloadButton) {
+    clearReloadButton.addEventListener('click', () => {
+        // 
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // 
+        if (previewFrame) {
+            previewFrame.src = '/overlay.html?t=' + Date.now();
+        }
+        
+        // 
+        window.location.href = window.location.pathname + '?t=' + Date.now();
+    });
+}

@@ -80,19 +80,19 @@
                         <span>Radius</span>
                         <input type="number" id="border-radius" min="0" max="24" step="1">
                     </label>
-                    <label>
+                    <label class="checkbox-label">
                         <span>Art</span>
                         <input type="checkbox" id="show-thumbnail">
                     </label>
-                    <label>
+                    <label class="checkbox-label">
                         <span>Artist</span>
                         <input type="checkbox" id="show-artist">
                     </label>
-                    <label>
+                    <label class="checkbox-label">
                         <span>Progress</span>
                         <input type="checkbox" id="show-progress">
                     </label>
-                    <label>
+                    <label class="checkbox-label">
                         <span>Time</span>
                         <input type="checkbox" id="show-time">
                     </label>
@@ -101,6 +101,7 @@
                 <footer class="actions">
                     <button type="submit">Save</button>
                     <button type="button" id="reset-defaults">Reset</button>
+                    <button type="button" id="clear-reload">Reload</button>
                     <span id="status" aria-live="polite"></span>
                 </footer>
             </form>
