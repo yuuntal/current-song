@@ -150,10 +150,8 @@ impl MediaReader for LinuxMediaReader {
     }
 }
 
-fn get_album_art_base64(metadata: &Metadata) -> Option<String> {
-    if let Some(art_url) = metadata.art_url() {
-        let path_str = art_url.strip_prefix("file://")?;
-
+pub(crate) fn fetch_and_convert_art(art_url: &str) -> Option<String> {
+    if let Some(path_str) = art_url.strip_prefix("file://") {
         let path = Path::new(path_str);
 
         if path.exists()
@@ -164,7 +162,66 @@ fn get_album_art_base64(metadata: &Metadata) -> Option<String> {
                 return Some(general_purpose::STANDARD.encode(&buffer));
             }
         }
+        // this is a fucking stupid
+    } else if art_url.starts_with("http://") || art_url.starts_with("https://") {
+        let client = reqwest::blocking::Client::builder()
+            .timeout(std::time::Duration::from_secs(3))
+            .build()
+            .ok()?;
+        let resp = client.get(art_url).send().ok()?;
+        if resp.status().is_success() {
+            let bytes = resp.bytes().ok()?;
+
+            if let Ok(img) = image::load_from_memory(&bytes) {
+                let mut png_bytes = Vec::new();
+                if img.write_to(&mut std::io::Cursor::new(&mut png_bytes), image::ImageFormat::Png).is_ok() {
+                    return Some(general_purpose::STANDARD.encode(&png_bytes));
+                }
+            }
+            return Some(general_purpose::STANDARD.encode(&bytes));
+        }
+    }
+    None
+}
+
+pub(crate) fn extract_youtube_video_id(url: &str) -> Option<&str> {
+    if let Some(pos) = url.find("youtu.be/") {
+        let id_part = &url[pos + 9..];
+        let end = id_part.find('?').unwrap_or(id_part.len());
+        let end = id_part[..end].find('&').unwrap_or(end);
+        let id = &id_part[..end];
+        if !id.is_empty() {
+            return Some(id);
+        }
+    }
+
+    for pattern in &["watch?v=", "watch/v/", "embed/", "shorts/"] {
+        if let Some(pos) = url.find(pattern) {
+            let id_part = &url[pos + pattern.len()..];
+            let end = id_part.find('?').unwrap_or(id_part.len());
+            let end = id_part[..end].find('&').unwrap_or(end);
+            let id = &id_part[..end];
+            if !id.is_empty() {
+                return Some(id);
+            }
+        }
     }
 
     None
 }
+
+fn get_album_art_base64(metadata: &Metadata) -> Option<String> {
+    // try to extract
+    if let Some(track_url) = metadata.url() {
+        if let Some(video_id) = extract_youtube_video_id(track_url) {
+            let yt_thumb_url = format!("https://img.youtube.com/vi/{}/hqdefault.jpg", video_id);
+            if let Some(art) = fetch_and_convert_art(&yt_thumb_url) {
+                return Some(art);
+            }
+        }
+    }
+
+    // 
+    metadata.art_url().and_then(fetch_and_convert_art)
+}
+

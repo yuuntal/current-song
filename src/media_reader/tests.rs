@@ -118,4 +118,27 @@ mod linux_tests {
             let _ = reader.get_current_song();
         }
     }
+
+    #[test]
+    fn test_fetch_and_convert_art_http() {
+        use super::super::linux::fetch_and_convert_art;
+        let url = "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png";
+        let res = fetch_and_convert_art(url);
+        assert!(res.is_some());
+        let base64_str = res.unwrap();
+        assert!(!base64_str.is_empty());
+    }
+
+    #[test]
+    fn test_extract_youtube_video_id() {
+        use super::super::linux::extract_youtube_video_id;
+        
+        assert_eq!(extract_youtube_video_id("https://www.youtube.com/watch?v=UQJpYFOeUsM&list=RD_IyiNNmD3bg"), Some("UQJpYFOeUsM"));
+        assert_eq!(extract_youtube_video_id("https://music.youtube.com/watch?v=UQJpYFOeUsM"), Some("UQJpYFOeUsM"));
+        assert_eq!(extract_youtube_video_id("https://youtu.be/UQJpYFOeUsM?t=42"), Some("UQJpYFOeUsM"));
+        assert_eq!(extract_youtube_video_id("https://www.youtube.com/embed/UQJpYFOeUsM"), Some("UQJpYFOeUsM"));
+        assert_eq!(extract_youtube_video_id("https://www.youtube.com/shorts/UQJpYFOeUsM?feature=share"), Some("UQJpYFOeUsM"));
+        assert_eq!(extract_youtube_video_id("https://soundcloud.com/some-track"), None);
+    }
 }
+
