@@ -5,7 +5,6 @@ use mpris::{Metadata, PlayerFinder};
 use std::cell::RefCell;
 use std::fs::File;
 use std::io::Read;
-use std::path::Path;
 use std::sync::Arc;
 
 // CACHING
@@ -67,8 +66,7 @@ impl MediaReader for LinuxMediaReader {
             let mut last_tick = self.last_tick.borrow_mut();
             let mut last_reported = self.last_reported_pos.borrow_mut();
 
-            // Detect new song by track_id + title + artist so changes are
-            // caught even when players return None for track_id.
+
             let is_new_song = cached
                 .as_ref()
                 .is_none_or(|c| c.id != current_id || c.title != title || c.artist != artist);
@@ -131,8 +129,9 @@ impl MediaReader for LinuxMediaReader {
                 position_secs = track.length_secs;
             }
 
-            // eprintln!("{} - {} [{}] pos: {}s", track.artist, track.title, track.album, position_secs);
+            // println!("{} - {} [{}] pos: {}s", track.artist, track.title, track.album, position_secs);
 
+            
             return Some(SongInfo {
                 title: track.title.clone(),
                 artist: track.artist.clone(),
@@ -151,18 +150,27 @@ impl MediaReader for LinuxMediaReader {
 }
 
 pub(crate) fn fetch_and_convert_art(art_url: &str) -> Option<String> {
-    if let Some(path_str) = art_url.strip_prefix("file://") {
-        let path = Path::new(path_str);
+    let mut resolved_url = art_url.to_string();
+    if resolved_url.contains("open.spotify.com/image") {
+        resolved_url = resolved_url.replace("open.spotify.com/image", "i.scdn.co/image");
+    } else if let Some(id) = resolved_url.strip_prefix("spotify:image:") {
+        resolved_url = format!("https://i.scdn.co/image/{}", id);
+    }
+    let art_url = &resolved_url;
 
-        if path.exists()
-            && let Ok(mut file) = File::open(path)
-        {
-            let mut buffer = Vec::new();
-            if file.read_to_end(&mut buffer).is_ok() {
-                return Some(general_purpose::STANDARD.encode(&buffer));
+    if art_url.starts_with("file://") {
+        if let Ok(parsed_url) = url::Url::parse(art_url) {
+            if let Ok(path) = parsed_url.to_file_path() {
+                if path.exists()
+                    && let Ok(mut file) = File::open(&path)
+                {
+                    let mut buffer = Vec::new();
+                    if file.read_to_end(&mut buffer).is_ok() {
+                        return Some(general_purpose::STANDARD.encode(&buffer));
+                    }
+                }
             }
         }
-        // this is a fucking stupid
     } else if art_url.starts_with("http://") || art_url.starts_with("https://") {
         let client = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(3))
@@ -210,6 +218,55 @@ pub(crate) fn extract_youtube_video_id(url: &str) -> Option<&str> {
     None
 }
 
+pub(crate) fn fetch_spotify_oembed_thumbnail(track_url: &str) -> Option<String> {
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(3))
+        .build()
+        .ok()?;
+    let encoded_url = url::form_urlencoded::byte_serialize(track_url.as_bytes()).collect::<String>();
+    let oembed_url = format!("https://open.spotify.com/oembed?url={}", encoded_url);
+    let resp = client.get(&oembed_url).send().ok()?;
+    if resp.status().is_success() {
+        if let Ok(text) = resp.text() {
+            let json: serde_json::Value = serde_json::from_str(&text).ok()?;
+            if let Some(thumb_url) = json.get("thumbnail_url").and_then(|v| v.as_str()) {
+                return Some(thumb_url.to_string());
+            }
+        }
+    }
+    None
+}
+
+pub(crate) fn fetch_itunes_artwork(title: &str, artist: &str) -> Option<String> {
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(3))
+        .build()
+        .ok()?;
+    let query = if artist.is_empty() {
+        title.to_string()
+    } else {
+        format!("{} {}", artist, title)
+    };
+    let encoded_query = url::form_urlencoded::byte_serialize(query.as_bytes()).collect::<String>();
+    let url = format!("https://itunes.apple.com/search?term={}&media=music&limit=1", encoded_query);
+    
+    let resp = client.get(&url).send().ok()?;
+    if resp.status().is_success() {
+        if let Ok(text) = resp.text() {
+            let json: serde_json::Value = serde_json::from_str(&text).ok()?;
+            if let Some(results) = json.get("results").and_then(|r| r.as_array()) {
+                if let Some(first_result) = results.first() {
+                    if let Some(artwork_url) = first_result.get("artworkUrl100").and_then(|v| v.as_str()) {
+                        let upgraded = artwork_url.replace("/100x100bb.jpg", "/600x600bb.jpg");
+                        return Some(upgraded);
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
 fn get_album_art_base64(metadata: &Metadata) -> Option<String> {
     // try to extract
     if let Some(track_url) = metadata.url() {
@@ -219,9 +276,33 @@ fn get_album_art_base64(metadata: &Metadata) -> Option<String> {
                 return Some(art);
             }
         }
+
+        // oEmbed
+        if track_url.contains("open.spotify.com/track/") {
+            if let Some(spotify_thumb_url) = fetch_spotify_oembed_thumbnail(track_url) {
+                if let Some(art) = fetch_and_convert_art(&spotify_thumb_url) {
+                    return Some(art);
+                }
+            }
+        }
     }
 
-    // 
-    metadata.art_url().and_then(fetch_and_convert_art)
+    // standard artUrl
+    if let Some(art) = metadata.art_url().and_then(fetch_and_convert_art) {
+        return Some(art);
+    }
+
+    // itunes search
+    let title = metadata.title().unwrap_or("");
+    let artist = metadata.artists().map(|a| a.join(" ")).unwrap_or_default();
+    if !title.is_empty() {
+        if let Some(itunes_thumb_url) = fetch_itunes_artwork(title, &artist) {
+            if let Some(art) = fetch_and_convert_art(&itunes_thumb_url) {
+                return Some(art);
+            }
+        }
+    }
+
+    None
 }
 

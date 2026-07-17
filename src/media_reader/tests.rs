@@ -130,6 +130,64 @@ mod linux_tests {
     }
 
     #[test]
+    fn test_fetch_and_convert_art_spotify() {
+        use super::super::linux::fetch_and_convert_art;
+        // i.scdn.co/image/
+        let url = "https://open.spotify.com/image/ab67616d00001e02ff9ca10b55ce82ae553c8228";
+        let res = fetch_and_convert_art(url);
+        assert!(res.is_some());
+        let base64_str = res.unwrap();
+        assert!(!base64_str.is_empty());
+    }
+
+    #[test]
+    fn test_fetch_and_convert_art_spotify_uri() {
+        use super::super::linux::fetch_and_convert_art;
+        // spotify:image:<id>
+        let url = "spotify:image:ab67616d00001e02ff9ca10b55ce82ae553c8228";
+        let res = fetch_and_convert_art(url);
+        assert!(res.is_some());
+        let base64_str = res.unwrap();
+        assert!(!base64_str.is_empty());
+    }
+
+    #[test]
+    fn test_fetch_and_convert_art_file_url_percent_encoded() {
+        use super::super::linux::fetch_and_convert_art;
+        use std::io::Write;
+        
+        let mut path = std::env::temp_dir();
+        path.push("currentsong test space");
+        let _ = std::fs::create_dir(&path);
+        path.push("test.png");
+        
+        if let Ok(mut file) = std::fs::File::create(&path) {
+            let _ = file.write_all(b"test data");
+        }
+        
+        let path_str = path.to_str().unwrap();
+        let url = format!("file://{}", path_str).replace(" ", "%20");
+        
+        let res = fetch_and_convert_art(&url);
+        assert!(res.is_some());
+        
+
+        let _ = std::fs::remove_file(&path);
+        path.pop();
+        let _ = std::fs::remove_dir(&path);
+    }
+
+    #[test]
+    fn test_fetch_itunes_artwork() {
+        use super::super::linux::fetch_itunes_artwork;
+        let res = fetch_itunes_artwork("Anti-Hero", "Taylor Swift");
+        assert!(res.is_some());
+        let url = res.unwrap();
+        assert!(url.starts_with("https://"));
+        assert!(url.contains("mzstatic.com"));
+    }
+
+    #[test]
     fn test_extract_youtube_video_id() {
         use super::super::linux::extract_youtube_video_id;
         

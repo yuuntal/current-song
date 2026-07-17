@@ -61,3 +61,7 @@ by default it uses color thief to extract colors from your song album art automa
 
 ### full windows support?
 soon(tm)
+
+# contributing
+
+yes please do
