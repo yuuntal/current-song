@@ -62,6 +62,49 @@ by default it uses color thief to extract colors from your song album art automa
 ### full windows support?
 soon(tm)
 
+# adding new text transitions
+
+if you want to add a new animation style for song transitions, you don't need to recompile the rust backend or touch the form binding javascript. you only need to add a js file and register it in the html.
+
+## 1. create the transition module
+create a new javascript file under `static/js/transitions/[name].js`. this file must export two things:
+- `schema`: an array of fields that will automatically render as configuration inputs in the customization page.
+- `animate`: a function that executes the transition on the element.
+
+example `static/js/transitions/fade.js`:
+```javascript
+export const schema = [
+    {
+        name: 'duration',
+        label: 'Fade Duration (ms)',
+        type: 'number',
+        min: 50,
+        max: 2000,
+        step: 50,
+        default: 300
+    }
+];
+
+export function animate(element, newText, config = {}) {
+    const duration = config.duration || 300;
+    // apply animation to element...
+}
+```
+
+if your animation doesn't have any configurable options, export an empty array:
+```javascript
+export const schema = [];
+```
+
+## 2. register the transition option
+open `static/customize.html` and add your option inside the `<select id="text-transition">` block:
+```html
+<option value="fade">Fade</option>
+```
+
+that's it. the customization menu will dynamically read your schema, render the form fields, handle save/load automatically, and dynamically import your code when a song changes.
+
+
 # contributing
 
 yes please do
