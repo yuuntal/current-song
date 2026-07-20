@@ -216,7 +216,8 @@ function syncDynamicLayout(layout = overlayConfig.layout || DEFAULT_LAYOUT) {
         if (!el || window.getComputedStyle(el).display === 'none') return 0;
         const cs = window.getComputedStyle(el);
         canvasCtx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
-        return Math.ceil(canvasCtx.measureText(el.textContent || '').width);
+        const textToMeasure = el.dataset.text !== undefined ? el.dataset.text : (el.textContent || '');
+        return Math.ceil(canvasCtx.measureText(textToMeasure).width);
     };
 
     const titleW  = measureText(title);
@@ -301,6 +302,40 @@ function normalizeSongInfo(data) {
 
     return data;
 }
+
+async function applyTextTransition(element, newText, delayMs = 0, overlayConfig = {}) {
+    if (!element) return;
+    
+    const transitionType = overlayConfig.text_transition || 'rotating';
+    const config = {
+        staggerFrom: overlayConfig.text_transition_stagger_from || 'last',
+        staggerDuration: overlayConfig.text_transition_stagger_duration !== undefined 
+            ? Number(overlayConfig.text_transition_stagger_duration) 
+            : 25
+    };
+
+    const run = async () => {
+        try {
+            const module = await import(`./transitions/${transitionType}.js`);
+            module.animate(element, newText, config);
+        } catch (e) {
+            // console.error(`${transitionType}. 'none'.`, e);
+            element.innerHTML = '';
+            element.innerText = newText;
+            element.dataset.text = newText;
+            element.style.display = '';
+            element.style.position = '';
+            element.style.verticalAlign = '';
+        }
+    };
+
+    if (delayMs > 0) {
+        setTimeout(run, delayMs);
+    } else {
+        run();
+    }
+}
+
 function updateUI(data) {
     const wasPlaying = state.isPlaying;
     const layout = data.layout || DEFAULT_LAYOUT;
@@ -347,8 +382,21 @@ function updateUI(data) {
     const artistEl = document.getElementById('w-artist');
     const nextArtist = data.artist || '';
 
-    if (titleEl)  titleEl.innerText  = data.title;
-    if (artistEl) artistEl.innerText = nextArtist;
+    if (triggerTransition) {
+        applyTextTransition(titleEl, data.title, 0, overlayConfig);
+        applyTextTransition(artistEl, nextArtist, 60, overlayConfig);
+    } else {
+        if (titleEl) {
+            titleEl.innerHTML = ''; 
+            titleEl.innerText = data.title;
+            titleEl.dataset.text = data.title;
+        }
+        if (artistEl) {
+            artistEl.innerHTML = '';
+            artistEl.innerText = nextArtist;
+            artistEl.dataset.text = nextArtist;
+        }
+    }
 
 
     const wrapper = document.getElementById('widget-wrapper');

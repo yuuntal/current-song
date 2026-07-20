@@ -18,6 +18,8 @@ const showArtistInput = document.getElementById('show-artist');
 const showProgressInput = document.getElementById('show-progress');
 const showTimeInput = document.getElementById('show-time');
 
+const textTransitionSelect = document.getElementById('text-transition');
+
 const DEFAULT_CONFIG = {
     theme: 'minimal',
     layout: 'dynamic',
@@ -39,6 +41,11 @@ const DEFAULT_CONFIG = {
     border_radius_px: 0,
     blur_px: 0,
     custom_css: '',
+    text_transition: 'rotating',
+    text_transition_settings: {
+        staggerFrom: 'last',
+        staggerDuration: 25
+    }
 };
 
 let config = { ...DEFAULT_CONFIG };
@@ -80,8 +87,79 @@ function render() {
     showArtistInput.checked = config.show_artist ?? DEFAULT_CONFIG.show_artist;
     showProgressInput.checked = config.show_progress ?? DEFAULT_CONFIG.show_progress;
     showTimeInput.checked = config.show_time ?? DEFAULT_CONFIG.show_time;
+    textTransitionSelect.value = config.text_transition || DEFAULT_CONFIG.text_transition;
+    
     syncAccentInput();
+    syncTextTransition();
 }
+
+async function syncTextTransition() {
+    if (!textTransitionSelect) return;
+    const selectedAnim = textTransitionSelect.value;
+    const configContainer = document.getElementById('text-transition-configs');
+    if (!configContainer) return;
+    
+    configContainer.innerHTML = '';
+    
+    try {
+        const module = await import(`/js/transitions/${selectedAnim}.js`);
+        if (module.schema && module.schema.length > 0) {
+            const sectionDiv = document.createElement('div');
+            sectionDiv.className = 'section split';
+            
+            module.schema.forEach(field => {
+                const label = document.createElement('label');
+                const span = document.createElement('span');
+                span.innerText = field.label;
+                label.appendChild(span);
+                
+                let input;
+                if (field.type === 'select') {
+                    input = document.createElement('select');
+                    input.style.cssText = "width: 100%; padding: 4px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px;";
+                    field.options.forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt.value;
+                        option.innerText = opt.label;
+                        input.appendChild(option);
+                    });
+                } else {
+                    input = document.createElement('input');
+                    input.type = field.type;
+                    input.style.cssText = "width: 100%; padding: 4px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px;";
+                    if (field.min !== undefined) input.min = field.min;
+                    if (field.max !== undefined) input.max = field.max;
+                    if (field.step !== undefined) input.step = field.step;
+                }
+                
+                input.name = field.name;
+                
+                const settings = config.text_transition_settings || {};
+                const defaultSettings = DEFAULT_CONFIG.text_transition_settings || {};
+                const val = settings[field.name] !== undefined 
+                    ? settings[field.name] 
+                    : (defaultSettings[field.name] !== undefined ? defaultSettings[field.name] : field.default);
+                
+                if (val !== undefined) {
+                    if (input.type === 'checkbox') {
+                        input.checked = !!val;
+                    } else {
+                        input.value = val;
+                    }
+                }
+                
+                label.appendChild(input);
+                sectionDiv.appendChild(label);
+            });
+            
+            configContainer.appendChild(sectionDiv);
+        }
+    } catch (e) {
+        console.error(`Failed to load schema for transition: ${selectedAnim}`, e);
+    }
+}
+
+textTransitionSelect.addEventListener('change', syncTextTransition);
 
 function syncAccentInput() {
     const colorMode = selected(colorModeGrid, 'mode', config.color_mode || DEFAULT_CONFIG.color_mode);
@@ -127,6 +205,7 @@ resetDefaultsButton.addEventListener('click', async () => {
 
 function readFormConfig() {
     const alignment = selected(positionGrid, 'align', DEFAULT_CONFIG.alignment);
+    const selectedAnim = textTransitionSelect.value;
 
     return {
         ...config,
@@ -147,6 +226,27 @@ function readFormConfig() {
         show_artist: showArtistInput.checked,
         show_progress: showProgressInput.checked,
         show_time: showTimeInput.checked,
+        text_transition: selectedAnim,
+        text_transition_settings: (() => {
+            const configContainer = document.getElementById('text-transition-configs');
+            const settings = {};
+            if (configContainer) {
+                configContainer.querySelectorAll('input, select, textarea').forEach(input => {
+                    if (input.name) {
+                        let val;
+                        if (input.type === 'checkbox') {
+                            val = input.checked;
+                        } else if (input.type === 'number') {
+                            val = Number(input.value);
+                        } else {
+                            val = input.value;
+                        }
+                        settings[input.name] = val;
+                    }
+                });
+            }
+            return settings;
+        })()
     };
 }
 

@@ -16,9 +16,9 @@ let currentTheme = '';
 let customStyleEl = null;
 let lastTitle = '';
 let transitionAnim = 'slide_up';
-let isVisible = false;     // tracks if overlay is currently shown
+let isVisible = false;
 
-// ── Init ────────────────────────────────────────────
+
 fetch('/api/config')
     .then(res => res.json())
     .then(data => {
@@ -36,20 +36,20 @@ function applyConfig(cfg) {
     overlay.style.setProperty('--blur', `${cfg.blur_px ?? 18}px`);
     overlay.style.setProperty('--art-radius', `${Math.max(0, (cfg.border_radius_px ?? 14) - 4)}px`);
 
-    // Theme class
+
     if (currentTheme) {
         document.body.classList.remove(`theme-${currentTheme}`);
     }
     currentTheme = cfg.theme || 'frosted_glass';
     document.body.classList.add(`theme-${currentTheme}`);
 
-    // Visibility toggles
+
     artworkWrap.style.display = cfg.show_thumbnail ? '' : 'none';
     artistName.parentElement.style.display = cfg.show_artist ? '' : 'none';
     progressCont.parentElement.style.display = cfg.show_progress ? '' : 'none';
     timeDisplay.parentElement.style.display = cfg.show_time ? '' : 'none';
 
-    // Position
+
     const positions = {
         TopLeft: ['flex-start', 'flex-start'],
         TopRight: ['flex-end', 'flex-start'],
@@ -60,7 +60,7 @@ function applyConfig(cfg) {
     document.body.style.justifyContent = jc;
     document.body.style.alignItems = ai;
 
-    // Custom CSS injection
+
     if (customStyleEl) customStyleEl.remove();
     if (cfg.custom_css && cfg.custom_css.trim()) {
         customStyleEl = document.createElement('style');
@@ -68,11 +68,10 @@ function applyConfig(cfg) {
         document.head.appendChild(customStyleEl);
     }
 
-    // Transition animation
+
     transitionAnim = cfg.transition_animation || 'slide_up';
 }
 
-// ── WebSocket ───────────────────────────────────────
 function connectWs() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
@@ -85,7 +84,7 @@ function connectWs() {
     ws.onclose = () => setTimeout(connectWs, 2000);
 }
 
-// ── Helpers ─────────────────────────────────────────
+
 const fmt = (secs) => {
     const m = Math.floor(secs / 60);
     const s = Math.floor(secs % 60);
@@ -93,9 +92,9 @@ const fmt = (secs) => {
 };
 
 function triggerSongChange() {
-    // Remove existing animations first
+
     overlay.classList.remove('song-change');
-    void overlay.offsetWidth;            // force reflow for re-trigger
+    void overlay.offsetWidth;
     overlay.classList.add('song-change');
 
     setTimeout(() => overlay.classList.remove('song-change'), 800);
@@ -104,12 +103,12 @@ function triggerSongChange() {
 function setArt(base64) {
     const src = base64 ? `data:image/png;base64,${base64}` : '';
     albumArt.src = src;
-    ambientArt.src = src;        // ambient blurred background mirrors art
+    ambientArt.src = src;
 }
 
-// ── Update ──────────────────────────────────────────
+
 function updateOverlay(song) {
-    /* ─ Hide when nothing playing ─ */
+
     if (!song.title) {
         if (isVisible) {
             overlay.classList.add('state-hidden');
@@ -119,16 +118,16 @@ function updateOverlay(song) {
         return;
     }
 
-    /* ─ Show card (use selected transition for entrance) ─ */
+
     if (!isVisible) {
         overlay.classList.remove('state-hidden');
         isVisible = true;
     }
 
-    /* ─ Playing state ─ */
+
     overlay.classList.toggle('playing', !!song.is_playing);
 
-    /* ─ Song change detection ─ */
+
     const newTitle = song.title || '';
     const songChanged = newTitle !== lastTitle;
 
@@ -137,7 +136,6 @@ function updateOverlay(song) {
         artistName.textContent = song.artist || 'Unknown Artist';
         setArt(song.album_art_base64);
 
-        // Staggered row animations
         triggerSongChange();
 
         if (transitionAnim !== 'none') {
@@ -156,7 +154,6 @@ function updateOverlay(song) {
         lastTitle = newTitle;
     }
 
-    /* ─ Progress ─ */
     currentTimeEl.textContent = fmt(song.position_secs);
     totalTimeEl.textContent = fmt(song.length_secs);
 

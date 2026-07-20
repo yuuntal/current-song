@@ -46,6 +46,11 @@ pub struct OverlayConfig {
     pub color_mode: String,
     #[serde(default = "default_collapse_delay")]
     pub collapse_delay_secs: f64,
+
+    #[serde(default = "default_text_transition")]
+    pub text_transition: String,
+    #[serde(default = "default_text_transition_settings")]
+    pub text_transition_settings: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -80,6 +85,8 @@ impl Default for OverlayConfig {
             animation: default_animation(),
             color_mode: default_color_mode(),
             collapse_delay_secs: default_collapse_delay(),
+            text_transition: default_text_transition(),
+            text_transition_settings: default_text_transition_settings(),
         }
     }
 }
@@ -102,5 +109,16 @@ fn default_color_mode() -> String {
 
 fn default_collapse_delay() -> f64 {
     3.0
+}
+
+fn default_text_transition() -> String {
+    "rotating".to_string()
+}
+
+fn default_text_transition_settings() -> serde_json::Value {
+    serde_json::json!({
+        "staggerFrom": "last",
+        "staggerDuration": 25
+    })
 }
 
