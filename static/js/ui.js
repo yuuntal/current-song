@@ -328,26 +328,9 @@ function updateUI(data) {
     state.isExpanded = nextExpanded;
 
     const baseDelay = overlayConfig.collapse_delay_secs || 1.5;
-    const typewriterDuration = Math.max(0.4, Math.min(1.2, baseDelay * 0.35));
 
     const triggerTransition = songJustChanged && (previousTitle !== undefined || window.parent !== window);
 
-    if (triggerTransition) {
-        const wrapper = document.getElementById('widget-wrapper');
-        if (wrapper) {
-            wrapper.classList.remove('song-changed');
-            void wrapper.offsetWidth;
-            wrapper.classList.add('song-changed');
-
-            triggerSmearAnimation('title', 0, 520, 28, 12, 30);
-            triggerSmearAnimation('artist', 50, 520, 20, 8, 20);
-
-            const removeDelay = Math.max(typewriterDuration * 1000, 600);
-            setTimeout(() => {
-                wrapper.classList.remove('song-changed');
-            }, removeDelay);
-        }
-    }
     state.currentTitle = data.title;
     state.currentArtist = data.artist;
 
@@ -362,40 +345,12 @@ function updateUI(data) {
 
     const titleEl = document.getElementById('w-title');
     const artistEl = document.getElementById('w-artist');
-    
-    if (titleEl) {
-        if (triggerTransition) {
-            transitionTextTypewriter(titleEl, data.title, typewriterDuration);
-        } else {
-            // If we are already typewriting this exact title, do not interrupt it!
-            if (titleEl.typewriterInterval && titleEl.typewriterTarget === data.title) {
-                // Let the typewriter continue
-            } else {
-                if (titleEl.typewriterInterval) {
-                    clearInterval(titleEl.typewriterInterval);
-                    titleEl.typewriterInterval = null;
-                }
-                titleEl.innerText = data.title;
-            }
-        }
-    }
-    if (artistEl) {
-        const nextArtist = data.artist || '';
-        if (songJustChanged && (previousArtist !== undefined || window.parent !== window)) {
-            transitionTextTypewriter(artistEl, nextArtist, typewriterDuration);
-        } else {
-            // If we are already typewriting this exact artist, do not interrupt it!
-            if (artistEl.typewriterInterval && artistEl.typewriterTarget === nextArtist) {
-                // Let the typewriter continue
-            } else {
-                if (artistEl.typewriterInterval) {
-                    clearInterval(artistEl.typewriterInterval);
-                    artistEl.typewriterInterval = null;
-                }
-                artistEl.innerText = nextArtist;
-            }
-        }
-    }
+    const nextArtist = data.artist || '';
+
+    if (titleEl)  titleEl.innerText  = data.title;
+    if (artistEl) artistEl.innerText = nextArtist;
+
+
     const wrapper = document.getElementById('widget-wrapper');
     if (wrapper) {
         const isSongChanged = wrapper.classList.contains('song-changed');
@@ -541,139 +496,7 @@ window.addEventListener('resize', () => {
 loadConfig().finally(connect);
 requestAnimationFrame(tick);
 
-function transitionTextTypewriter(element, targetText, durationSecs) {
-    if (!element) return;
-    if (element.typewriterInterval) {
-        clearInterval(element.typewriterInterval);
-    }
 
-    const startText = (element.innerText || '').trim();
-    const target = (targetText || '').trim();
-    if (startText === target) {
-        element.typewriterTarget = null;
-        return;
-    }
-
-    element.typewriterTarget = target;
-
-    let commonLen = 0;
-    const minLen = Math.min(startText.length, target.length);
-    while (commonLen < minLen && startText.charAt(commonLen) === target.charAt(commonLen)) {
-        commonLen++;
-    }
-    const commonPrefix = startText.substring(0, commonLen);
-
-
-    const deleteCount = startText.length - commonLen;
-
-    const insertCount = target.length - commonLen;
-    const totalSteps = deleteCount + insertCount;
-
-    console.log(`[Typewriter] Start: "${startText}" -> Target: "${target}"`);
-    console.log(`[Typewriter] Common prefix: "${commonPrefix}" | Deletions: ${deleteCount} | Insertions: ${insertCount}`);
-
-    if (totalSteps === 0) {
-        element.innerText = target;
-        element.typewriterTarget = null;
-        syncDynamicLayout();
-        syncTextOverflow();
-        return;
-    }
-
-    const durationMs = (durationSecs || 0.55) * 1000;
-    const speedMs = durationMs / totalSteps;
-    let step = 0;
-
-    element.typewriterInterval = setInterval(() => {
-        if (step < deleteCount) {
-            // del
-            const nextText = startText.substring(0, startText.length - step - 1);
-            element.innerText = nextText;
-            console.log(`[Typewriter] Deleting: "${nextText}"`);
-        } else {
-            // type
-            const insertStep = step - deleteCount;
-            const nextText = commonPrefix + target.substring(commonLen, commonLen + insertStep + 1);
-            element.innerText = nextText;
-            console.log(`[Typewriter] Typing: "${nextText}"`);
-        }
-        step++;
-        syncDynamicLayout();
-
-        if (step >= totalSteps) {
-            clearInterval(element.typewriterInterval);
-            element.typewriterInterval = null;
-            element.typewriterTarget = null;
-            console.log(`[Typewriter] Completed.`);
-            syncTextOverflow();
-        }
-    }, speedMs);
-}
-
-const activeSmearAnimations = {
-    title: null,
-    artist: null,
-};
-
-function triggerSmearAnimation(prefix, delayMs, durationMs, maxBlur, maxOffset, maxWarp) {
-    if (activeSmearAnimations[prefix]) {
-        cancelAnimationFrame(activeSmearAnimations[prefix]);
-        activeSmearAnimations[prefix] = null;
-    }
-
-    const blurElem = document.getElementById(`${prefix}-blur`);
-    const offsetRed = document.getElementById(`${prefix}-offset-red`);
-    const offsetBlue = document.getElementById(`${prefix}-offset-blue`);
-    const displaceElem = document.getElementById(`${prefix}-displace`);
-
-    if (!blurElem || !offsetRed || !offsetBlue || !displaceElem) return;
-
-    blurElem.setAttribute('stdDeviation', '0 0');
-    offsetRed.setAttribute('dx', '0');
-    offsetBlue.setAttribute('dx', '0');
-    displaceElem.setAttribute('scale', '0');
-
-    let startTime = null;
-
-    function step(timestamp) {
-        if (!startTime) {
-            startTime = timestamp;
-        }
-
-        const elapsed = timestamp - startTime;
-
-        if (elapsed < delayMs) {
-            activeSmearAnimations[prefix] = requestAnimationFrame(step);
-            return;
-        }
-
-        const animElapsed = elapsed - delayMs;
-        const progress = Math.min(animElapsed / durationMs, 1);
-
-        const ease = 1 - Math.pow(1 - progress, 4);
-
-        const currentBlur = maxBlur * (1 - ease);
-        const currentOffset = maxOffset * (1 - ease);
-        const currentWarp = maxWarp * (1 - ease);
-
-        blurElem.setAttribute('stdDeviation', `${currentBlur} 0`);
-        offsetRed.setAttribute('dx', `${-currentOffset}`);
-        offsetBlue.setAttribute('dx', `${currentOffset}`);
-        displaceElem.setAttribute('scale', `${currentWarp}`);
-
-        if (progress < 1) {
-            activeSmearAnimations[prefix] = requestAnimationFrame(step);
-        } else {
-            blurElem.setAttribute('stdDeviation', '0 0');
-            offsetRed.setAttribute('dx', '0');
-            offsetBlue.setAttribute('dx', '0');
-            displaceElem.setAttribute('scale', '0');
-            activeSmearAnimations[prefix] = null;
-        }
-    }
-
-    activeSmearAnimations[prefix] = requestAnimationFrame(step);
-}
 
 
 
