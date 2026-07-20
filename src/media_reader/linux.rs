@@ -159,9 +159,9 @@ pub(crate) fn fetch_and_convert_art(art_url: &str) -> Option<String> {
     let art_url = &resolved_url;
 
     if art_url.starts_with("file://") {
-        if let Ok(parsed_url) = url::Url::parse(art_url) {
-            if let Ok(path) = parsed_url.to_file_path() {
-                if path.exists()
+        if let Ok(parsed_url) = url::Url::parse(art_url)
+            && let Ok(path) = parsed_url.to_file_path()
+                && path.exists()
                     && let Ok(mut file) = File::open(&path)
                 {
                     let mut buffer = Vec::new();
@@ -169,8 +169,6 @@ pub(crate) fn fetch_and_convert_art(art_url: &str) -> Option<String> {
                         return Some(general_purpose::STANDARD.encode(&buffer));
                     }
                 }
-            }
-        }
     } else if art_url.starts_with("http://") || art_url.starts_with("https://") {
         let client = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(3))
@@ -226,14 +224,13 @@ pub(crate) fn fetch_spotify_oembed_thumbnail(track_url: &str) -> Option<String> 
     let encoded_url = url::form_urlencoded::byte_serialize(track_url.as_bytes()).collect::<String>();
     let oembed_url = format!("https://open.spotify.com/oembed?url={}", encoded_url);
     let resp = client.get(&oembed_url).send().ok()?;
-    if resp.status().is_success() {
-        if let Ok(text) = resp.text() {
+    if resp.status().is_success()
+        && let Ok(text) = resp.text() {
             let json: serde_json::Value = serde_json::from_str(&text).ok()?;
             if let Some(thumb_url) = json.get("thumbnail_url").and_then(|v| v.as_str()) {
                 return Some(thumb_url.to_string());
             }
         }
-    }
     None
 }
 
@@ -251,19 +248,16 @@ pub(crate) fn fetch_itunes_artwork(title: &str, artist: &str) -> Option<String> 
     let url = format!("https://itunes.apple.com/search?term={}&media=music&limit=1", encoded_query);
     
     let resp = client.get(&url).send().ok()?;
-    if resp.status().is_success() {
-        if let Ok(text) = resp.text() {
+    if resp.status().is_success()
+        && let Ok(text) = resp.text() {
             let json: serde_json::Value = serde_json::from_str(&text).ok()?;
-            if let Some(results) = json.get("results").and_then(|r| r.as_array()) {
-                if let Some(first_result) = results.first() {
-                    if let Some(artwork_url) = first_result.get("artworkUrl100").and_then(|v| v.as_str()) {
+            if let Some(results) = json.get("results").and_then(|r| r.as_array())
+                && let Some(first_result) = results.first()
+                    && let Some(artwork_url) = first_result.get("artworkUrl100").and_then(|v| v.as_str()) {
                         let upgraded = artwork_url.replace("/100x100bb.jpg", "/600x600bb.jpg");
                         return Some(upgraded);
                     }
-                }
-            }
         }
-    }
     None
 }
 
@@ -278,13 +272,11 @@ fn get_album_art_base64(metadata: &Metadata) -> Option<String> {
         }
 
         // oEmbed
-        if track_url.contains("open.spotify.com/track/") {
-            if let Some(spotify_thumb_url) = fetch_spotify_oembed_thumbnail(track_url) {
-                if let Some(art) = fetch_and_convert_art(&spotify_thumb_url) {
+        if track_url.contains("open.spotify.com/track/")
+            && let Some(spotify_thumb_url) = fetch_spotify_oembed_thumbnail(track_url)
+                && let Some(art) = fetch_and_convert_art(&spotify_thumb_url) {
                     return Some(art);
                 }
-            }
-        }
     }
 
     // standard artUrl
@@ -295,13 +287,11 @@ fn get_album_art_base64(metadata: &Metadata) -> Option<String> {
     // itunes search
     let title = metadata.title().unwrap_or("");
     let artist = metadata.artists().map(|a| a.join(" ")).unwrap_or_default();
-    if !title.is_empty() {
-        if let Some(itunes_thumb_url) = fetch_itunes_artwork(title, &artist) {
-            if let Some(art) = fetch_and_convert_art(&itunes_thumb_url) {
+    if !title.is_empty()
+        && let Some(itunes_thumb_url) = fetch_itunes_artwork(title, &artist)
+            && let Some(art) = fetch_and_convert_art(&itunes_thumb_url) {
                 return Some(art);
             }
-        }
-    }
 
     None
 }
