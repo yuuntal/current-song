@@ -108,7 +108,10 @@ function draw() {
 
     for (let i = 0; i < numBars; i++) {
         const heightMultiplier = 0.65;
-        const barHeight = Math.max(2, barHeights[i] * h * heightMultiplier);
+        const barHeight = barHeights[i] * h * heightMultiplier;
+        
+        if (barHeight <= 0.5) continue;
+
         const x = i * (barWidth + gap);
         const y = h - barHeight;
 
